@@ -601,13 +601,33 @@ class BaseTrainer:
         """Plots training labels for YOLO model."""
         pass
 
+    # def save_metrics(self, metrics):
+    #     """Saves training metrics to a CSV file."""
+    #     keys, vals = list(metrics.keys()), list(metrics.values())
+    #     n = len(metrics) + 1  # number of cols
+    #     s = "" if self.csv.exists() else (("%23s," * n % tuple(["epoch"] + keys)).rstrip(",") + "\n")  # header
+    #     with open(self.csv, "a") as f:
+    #         f.write(s + ("%23.5g," * n % tuple([self.epoch + 1] + vals)).rstrip(",") + "\n")
+
     def save_metrics(self, metrics):
-        """Saves training metrics to a CSV file."""
+        from datetime import datetime
+        
+        """Saves training metrics to a CSV file with a timestamp."""
+        # 获取当前时间并格式化为 "年-月-日 小时:分钟"
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        # 提取字典的键和值
         keys, vals = list(metrics.keys()), list(metrics.values())
-        n = len(metrics) + 1  # number of cols
-        s = "" if self.csv.exists() else (("%23s," * n % tuple(["epoch"] + keys)).rstrip(",") + "\n")  # header
+
+        # 计算列数，新增时间列
+        n = len(metrics) + 2  # 增加2列：时间和epoch
+
+        # 构建 CSV 文件的表头，如果文件不存在则添加表头
+        s = "" if self.csv.exists() else (("%23s," * n % tuple(["time", "epoch"] + keys)).rstrip(",") + "\n")
+
+        # 打开文件并写入时间、epoch 和指标值
         with open(self.csv, "a") as f:
-            f.write(s + ("%23.5g," * n % tuple([self.epoch + 1] + vals)).rstrip(",") + "\n")
+            f.write(s + ("%23s," + "%23.5g," * (n - 1)) % tuple([current_time, self.epoch + 1] + vals) + "\n")
 
     def plot_metrics(self):
         """Plot and display metrics visually."""

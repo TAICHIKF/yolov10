@@ -39,8 +39,8 @@ class MainWindow(QTabWidget):
         self.stopEvent = threading.Event()
         self.webcam = True
         self.stopEvent.clear()
-        # self.model_path = "yolov8n.pt"  # todo 指明模型加载的位置的设备
-        self.model_path = "D:\code\yolov10\models_pt\yolov10n.pt"  # todo 指明模型加载的位置的设备
+        self.model_path = "yolov8n.pt"  # todo 指明模型加载的位置的设备
+        # self.model_path = "D:\code\yolov10\models_pt\yolov10n.pt"  # todo 指明模型加载的位置的设备
         self.model = self.model_load(weights=self.model_path)
         self.conf_thres = 0.25   # 置信度的阈值
         self.iou_thres = 0.45    # NMS操作的时候 IOU过滤的阈值

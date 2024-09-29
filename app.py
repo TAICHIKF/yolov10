@@ -3,6 +3,20 @@ import cv2
 import tempfile
 from ultralytics import YOLOv10
 
+# import os
+
+
+
+# export https_proxy=http://127.0.0.1:7890 http_proxy=http://127.0.0.1:7890 all_proxy=socks5://127.0.0.1:7890
+# Set the proxy URL and port
+# proxy_url = 'http://127.0.0.1'
+# proxy_port = '7890'  # !!!please replace it with your own port
+
+# # Set the http_proxy and https_proxy environment variables
+# os.environ['http_proxy'] = f'{proxy_url}:{proxy_port}'
+# os.environ['https_proxy'] = f'{proxy_url}:{proxy_port}'
+
+
 
 def yolov10_inference(image, video, model_id, image_size, conf_threshold):
     model = YOLOv10.from_pretrained(f'jameslahm/{model_id}')

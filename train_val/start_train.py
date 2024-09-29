@@ -1,6 +1,8 @@
 '''
 yolo detect train data=coco.yaml model=yolov10n/s/m/b/l/x.yaml epochs=500 batch=256 imgsz=640 device=0,1,2,3,4,5,6,7
 
+ps aux | grep yolov10 | grep -v grep | awk '{print $2}' | xargs kill -9
+
 yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0
 yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0 resume model=r'D:\code\yolov10\runs\detect\train\weights\last.pt'
 
@@ -18,13 +20,13 @@ from ultralytics import YOLOv10
 
 def train_in_windows():
 
-    # model = YOLOv10('../models_pt/yolov10x.pt') 
-    model = YOLOv10('yolov10x.yaml') 
+    # model = YOLOv10('runs/detect/train4/weights/last.pt') 
+    model = YOLOv10('yolov10b.yaml') 
 
     # results = model.train(data='A_my_data.yaml', epochs=100, imgsz=640, device=[0,], workers=0, batch=4, cache=True)  # 开始训练
-    model.train(data='coco.yaml', epochs=101, batch=8, imgsz=640, name='train2_yolov10x_coco')
+    model.train(data='coco.yaml', epochs=500, batch=128, imgsz=640, device=[3], name='train_10', cache=True, plots=True)
     # model.train(data='coco.yaml', epochs=100, batch=16, imgsz=640, device=0, resume=True, mode='D:\\code\\yolov10\\runs\\detect\\train\\weights\\last.pt')
-    time.sleep(10) # 睡眠10s，主要是用于服务器多次训练的过程中使用
+    # time.sleep(10) # 睡眠10s，主要是用于服务器多次训练的过程中使用
         
 
 if __name__=='__main__':
@@ -96,3 +98,58 @@ dropout	        0.0 	    Dropout rate for regularization in classification tasks
 val	            True	    Enables validation during training, allowing for periodic evaluation of model performance on a separate dataset.
 plots	        False	    Generates and saves plots of training and validation metrics, as well as prediction examples, providing visual insights into model performance and learning progression.
 """
+
+
+''' CN
+
+训练可选参数
+参数名           默认值         描述
+model            None          指定训练的模型文件。接受 .pt 预训练模型或 .yaml 配置文件的路径。对于定义模型结构或初始化权重是必需的。
+data             None          数据集配置文件的路径（例如 coco8.yaml）。该文件包含数据集特定的参数，包括训练和验证数据的路径、类别名称以及类别数量。
+epochs           100           总训练轮数。每一轮表示对整个数据集进行一次完整的遍历。调整此值会影响训练时间和模型性能。
+time             None          最大训练时间（小时）。如果设置，该参数会覆盖 epochs 参数，允许训练在指定的持续时间后自动停止。适用于时间有限的训练场景。
+patience         100           在验证指标没有改善的情况下，等待的轮数后才会提前停止训练。通过在性能停滞时停止训练来帮助防止过拟合。
+batch            16            批量大小，有三种模式：设置为整数（例如，batch=16），自动模式用于 60% GPU 内存利用率（batch=-1），或指定利用率分数的自动模式（batch=0.70）。
+imgsz            640           训练的目标图像大小。所有图像在输入模型之前都会调整为此尺寸。影响模型的准确性和计算复杂度。
+save             True          启用保存训练检查点和最终模型权重。对于恢复训练或模型部署非常有用。
+save_period      -1            保存模型检查点的频率，以轮数为单位指定。值为 -1 时禁用此功能。适用于在长时间训练过程中保存中间模型。
+cache            False         启用将数据集图像缓存到内存（True/ram）、磁盘（disk）或禁用（False）。通过减少磁盘 I/O 提高训练速度，但会增加内存使用。
+device           None          指定用于训练的计算设备：单个 GPU（device=0）、多个 GPU（device=0,1）、CPU（device=cpu）或 Apple Silicon 的 MPS（device=mps）。
+workers          8             数据加载的工作线程数量（如果是多 GPU 训练，则按 RANK）。影响数据预处理和输入模型的速度，特别是在多 GPU 设置中非常有用。
+project          None          训练输出保存的项目目录名称。允许有组织地存储不同的实验。
+name             None          训练运行的名称。用于在项目文件夹中创建子目录，以存储训练日志和输出。
+exist_ok         False         如果为 True，允许覆盖现有的 project/name 目录。适用于迭代实验，而无需手动清除以前的输出。
+pretrained       True          决定是否从预训练模型开始训练。可以是布尔值或特定模型的字符串路径，用于加载权重。提高训练效率和模型性能。
+optimizer        'auto'        选择训练的优化器。选项包括 SGD、Adam、AdamW、NAdam、RAdam、RMSProp 等，或自动选择基于模型配置的优化器。影响收敛速度和稳定性。
+verbose          False         启用训练过程中的详细输出，提供详细日志和进度更新。适用于调试和密切监控训练过程。
+seed             0             设置训练的随机种子，确保在相同配置下运行时结果的可重复性。
+deterministic    True          强制使用确定性算法，确保可重复性，但可能会因限制非确定性算法而影响性能和速度。
+single_cls        False        在多类别数据集中将所有类别视为一个单一类别进行训练。适用于二分类任务或专注于物体存在而非分类时。
+rect             False         启用矩形训练，优化批量组成以减少填充。可以提高效率和速度，但可能会影响模型准确性。
+cos_lr           False         使用余弦学习率调度器，在轮次中调整学习率以跟随余弦曲线。帮助管理学习率以实现更好的收敛。
+close_mosaic     10            在最后 N 轮中禁用马赛克数据增强，以在训练完成前稳定训练。设置为 0 会禁用此功能。
+resume           False         从最后一个保存的检查点恢复训练。自动加载模型权重、优化器状态和轮数，继续训练而不会中断。
+amp              True          启用自动混合精度（AMP）训练，减少内存使用，并可能加速训练，对准确性影响最小。
+fraction         1.0           指定用于训练的数据集分数。允许在完整数据集的子集上进行训练，适用于实验或资源有限的情况下。
+profile          False         启用训练期间 ONNX 和 TensorRT 的性能分析，有助于优化模型部署。
+freeze           None          冻结模型的前 N 层或按索引指定的层，减少可训练参数的数量。适用于微调或迁移学习。
+lr0              0.01          初始学习率（例如 SGD=1E-2, Adam=1E-3）。调整此值对于优化过程至关重要，影响模型权重更新的速度。
+lrf              0.01          最终学习率作为初始学习率的分数 = (lr0 * lrf)，与调度器一起使用，以调整学习率随时间变化。
+momentum         0.937         SGD 的动量因子或 Adam 优化器的 beta1，影响当前更新中过去梯度的纳入。
+weight_decay     0.0005        L2 正则化项，惩罚大权重以防止过拟合。
+warmup_epochs    3.0           学习率预热的轮数，从低值逐渐增加到初始学习率，以稳定训练早期的过程。
+warmup_momentum  0.8           预热阶段的初始动量，逐渐调整到设置的动量值。
+warmup_bias_lr   0.1           预热阶段偏置参数的学习率，帮助在初期稳定模型训练。
+box              7.5           损失函数中框损失组件的权重，影响对准确预测边界框坐标的重视程度。
+cls              0.5           分类损失在总损失函数中的权重，影响正确类别预测的重要性。
+dfl              1.5           分布焦点损失的权重，某些 YOLO 版本用于细粒度分类。
+pose             12.0          姿态损失在姿态估计模型中的权重，影响对准确预测姿态关键点的重视程度。
+kobj             2.0           姿态估计模型中关键点对象性损失的权重，平衡检测信心与姿态准确性。
+label_smoothing   0.0          应用标签平滑，将硬标签软化为目标标签和标签均匀分布的混合，可以提高泛化能力。
+nbs              64            用于标准化损失的名义批量大小。
+overlap_mask     True          决定在训练期间分割掩码是否应重叠，适用于实例分割任务。
+mask_ratio       4             分割掩码的下采样比率，影响训练期间使用的掩码的分辨率。
+dropout          0.0           分类任务中的 dropout 率，通过在训练期间随机忽略单位来防止过拟合。
+val              True          启用训练期间的验证，允许定期评估模型在单独数据集上的性能。
+plots            False         生成并保存训练和验证指标的图表，以及预测示例，为模型性能和学习进展提供视觉洞察。
+'''

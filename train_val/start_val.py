@@ -30,9 +30,9 @@ if __name__ == '__main__':
 
     # or
     # wget https://github.com/THU-MIG/yolov10/releases/download/v1.1/yolov10{n/s/m/b/l/x}.pt
-    model = YOLOv10("../runs/detect/train/weights/best.pt")
+    model = YOLOv10("./runs/detect/train_yolov10m_coco_/weights/best.pt")
 
-    validation_results = model.val(data='coco.yaml', batch=128)
+    validation_results = model.val(data='coco.yaml', batch=128, device=[1])
     # validation_results = model.val(data='A_my_data.yaml', imgsz=640, batch=4, conf=0.25, iou=0.6, device="0", workers=0)
 
 
