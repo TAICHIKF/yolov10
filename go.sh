@@ -1,0 +1,1 @@
+bash  /train_val/start_train.py

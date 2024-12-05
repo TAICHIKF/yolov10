@@ -3,7 +3,7 @@ yolo detect train data=coco.yaml model=yolov10n/s/m/b/l/x.yaml epochs=500 batch=
 
 ps aux | grep yolov10 | grep -v grep | awk '{print $2}' | xargs kill -9
 
-yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0
+yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0,1,2,3
 yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0 resume model=r'D:\code\yolov10\runs\detect\train\weights\last.pt'
 
 '''
@@ -15,16 +15,14 @@ from ultralytics import YOLOv10
 # pretrained weights like below
 # model = YOLOv10.from_pretrained('jameslahm/yolov10{n/s/m/b/l/x}')
 # or
-# wget https://github.com/THU-MIG/yolov10/releases/download/v1.1/yolov10{n/s/m/b/l/x}.pt
-# model = YOLOv10('yolov10{n/s/m/b/l/x}.pt')
 
 def train_in_windows():
 
     # model = YOLOv10('runs/detect/train4/weights/last.pt') 
-    model = YOLOv10('yolov10b.yaml') 
+    model = YOLOv10('yolov10l.yaml') 
 
     # results = model.train(data='A_my_data.yaml', epochs=100, imgsz=640, device=[0,], workers=0, batch=4, cache=True)  # 开始训练
-    model.train(data='coco.yaml', epochs=500, batch=128, imgsz=640, device=[3], name='train_10', cache=True, plots=True)
+    model.train(data='coco.yaml', epochs=500, batch=256, imgsz=640, device=[0,1,2,3], name='train_10l', cache=True, plots=True)
     # model.train(data='coco.yaml', epochs=100, batch=16, imgsz=640, device=0, resume=True, mode='D:\\code\\yolov10\\runs\\detect\\train\\weights\\last.pt')
     # time.sleep(10) # 睡眠10s，主要是用于服务器多次训练的过程中使用
         
