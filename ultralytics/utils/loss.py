@@ -719,7 +719,7 @@ class v10DetectLoss:
         self.one2many = v8DetectionLoss(model, tal_topk=10)
         self.one2one = v8DetectionLoss(model, tal_topk=1)
     
-    def __call__(self, preds, batch):
+    def __call__(self, preds, batch):    
         one2many = preds["one2many"]
         loss_one2many = self.one2many(one2many, batch)
         one2one = preds["one2one"]

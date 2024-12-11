@@ -44,7 +44,8 @@ urls = [
     # 'http://images.cocodataset.org/zips/train2017.zip',
     # 'http://images.cocodataset.org/zips/val2017.zip',
     # 'http://images.cocodataset.org/zips/test2017.zip',
-    'http://images.cocodataset.org/annotations/annotations_trainval2017.zip'
+    'http://images.cocodataset.org/annotations/annotations_trainval2017.zip',
+    # 'https://ultralytics.com/assets/coco8.zip'
 ]
 
 for url in urls:

@@ -1,1 +1,1 @@
-bash  /train_val/start_train.py
+python3  train_val/start_train_llmnas.py

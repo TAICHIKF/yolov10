@@ -956,6 +956,13 @@ def yaml_model_load(path):
         LOGGER.warning(f"WARNING ⚠️ Ultralytics YOLO P6 models now use -p6 suffix. Renaming {path.stem} to {new_stem}.")
         path = path.with_name(new_stem + path.suffix)
 
+    # 如果文件名包含 yolov8plus，替换为 yolov8-plus
+    if "yolov8plus" in path.stem:
+        new_stem = path.stem.replace("yolov8plus", "yolov8-plus")
+        LOGGER.warning(f"WARNING ⚠️ Found yolov8plus, renaming {path.stem} to {new_stem}.")
+        path 
+
+
     if "v10" not in str(path):
         unified_path = re.sub(r"(\d+)([nsblmx])(.+)?$", r"\1\3", str(path))  # i.e. yolov8x.yaml -> yolov8.yaml
     else:

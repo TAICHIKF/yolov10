@@ -8,14 +8,28 @@
 # '''
 
 # import time
+import logging
 from ultralytics import YOLO
+from LLM.llm_generate import generate_new_structure_using_llm
 
-model = YOLO('yolov8s.yaml')
-model.train(data='coco.yaml', epochs=100, imgsz=640,batch=256, device=[0,1], name='train_v8s', cache=True, plots=True,)
+task_name = 'yolov8puls'
+# 保存为文件
+file_path = f"./ultralytics/cfg/models/v8/{task_name}.yaml"
+
+api_type = 'gpt'
+new_structure = generate_new_structure_using_llm(api_type)
+print(new_structure)
+
+with open(file_path, "w") as file:
+    file.write(new_structure)
+print(f"YAML 文件已保存到: {file_path}")
+
+
+model = YOLO(f'{task_name}.yaml')
+
+model.train(data='coco.yaml', epochs=100, imgsz=640,batch=256, device=[3,4], name=task_name, cache=True, plots=True,)
     
 # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
-# model.train(data="coco8.yaml", epochs=100, imgsz=640)
-        
 
 
 

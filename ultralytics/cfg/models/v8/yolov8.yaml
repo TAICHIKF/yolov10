@@ -1,5 +1,3 @@
-# Ultralytics YOLO 🚀, AGPL-3.0 license
-# YOLOv8 object detection model with P3-P5 outputs. For Usage examples see https://docs.ultralytics.com/tasks/detect
 
 # Parameters
 nc: 80 # number of classes
@@ -11,7 +9,7 @@ scales: # model compound scaling constants, i.e. 'model=yolov8n.yaml' will call 
   l: [1.00, 1.00, 512] # YOLOv8l summary: 365 layers, 43691520 parameters, 43691504 gradients, 165.7 GFLOPs
   x: [1.00, 1.25, 512] # YOLOv8x summary: 365 layers, 68229648 parameters, 68229632 gradients, 258.5 GFLOPs
 
-# YOLOv8.0n backbone
+# YOLOv8n backbone
 backbone:
   # [from, repeats, module, args]
   - [-1, 1, Conv, [64, 3, 2]] # 0-P1/2
@@ -25,7 +23,7 @@ backbone:
   - [-1, 3, C2f, [1024, True]]
   - [-1, 1, SPPF, [1024, 5]] # 9
 
-# YOLOv8.0n head
+# YOLOv8n head
 head:
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
   - [[-1, 6], 1, Concat, [1]] # cat backbone P4
