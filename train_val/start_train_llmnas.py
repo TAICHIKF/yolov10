@@ -2,35 +2,38 @@
 
 # '''
 # yolo detect train data=coco.yaml model=yolov10n/s/m/b/l/x.yaml epochs=500 batch=256 imgsz=640 device=0,1,2,3,4,5,6,7
-# ps aux | grep yolov10 | grep -v grep | awk '{print $2}' | xargs kill -9
+# ps aux | grep yolov | grep -v grep | awk '{print $2}' | xargs kill -9
 # yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0,1,2,3
 # yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0 resume model=r'D:\code\yolov10\runs\detect\train\weights\last.pt'
 # '''
 
 # import time
+import os
 import logging
 from ultralytics import YOLO
 from LLM.llm_generate import generate_new_structure_using_llm
 
 task_name = 'yolov8puls1'
 # 保存为文件
-file_path = f"./ultralytics/cfg/models/v8/{task_name}.yaml"
+file_path = f"./llmv8/{task_name}.yaml"
 
-api_type = 'qwen'
-# api_type = 'gpt'
-# api_type = 'silicon'
-new_structure = generate_new_structure_using_llm(api_type)
-print(new_structure)
+# 检查文件是否已经存在
+if os.path.exists(file_path):
+    print(f"文件已存在，跳过操作: {file_path}")
+else:
+    # api_type = 'qwen'
+    api_type = 'gpt'
+    # api_type = 'silicon'
+    new_structure = generate_new_structure_using_llm(api_type)
+    print(new_structure)
 
-with open(file_path, "w") as file:
-    file.write(new_structure)
-print(f"YAML 文件已保存到: {file_path}")
+    with open(file_path, "w") as file:
+        file.write(new_structure)
+    print(f"YAML 文件已保存到: {file_path}")
 
 
-# model = YOLO(f'{task_name}.yaml')
 model = YOLO(file_path, verbose=True)
-
-model.train(data='ultralytics/cfg/datasets/coco.yaml', epochs=500, imgsz=640,batch=512, device=[4,5], name=task_name, cache=True, plots=True,)
+model.train(data='ultralytics/cfg/datasets/coco.yaml', epochs=500, imgsz=640,batch=128, device=[4,5,6,7], name=task_name, cache=True, plots=True,)
     
 # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
 
