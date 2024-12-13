@@ -13,7 +13,7 @@ import logging
 from ultralytics import YOLO
 from LLM.llm_generate import generate_new_structure_using_llm
 
-task_name = 'yolov8puls1'
+task_name = 'yolov8puls3'
 # 保存为文件
 file_path = f"./llmv8/{task_name}.yaml"
 
@@ -33,7 +33,7 @@ else:
 
 
 model = YOLO(file_path, verbose=True)
-model.train(data='ultralytics/cfg/datasets/coco.yaml', epochs=500, imgsz=640,batch=128, device=[4,5,6,7], name=task_name, cache=True, plots=True,)
+model.train(data='ultralytics/cfg/datasets/coco.yaml', epochs=500, imgsz=640,batch=128, device=[6,7], name=task_name, cache=True, plots=True,)
     
 # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
 
