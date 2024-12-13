@@ -12,11 +12,13 @@ import logging
 from ultralytics import YOLO
 from LLM.llm_generate import generate_new_structure_using_llm
 
-task_name = 'yolov8puls'
+task_name = 'yolov8puls1'
 # 保存为文件
 file_path = f"./ultralytics/cfg/models/v8/{task_name}.yaml"
 
-api_type = 'gpt'
+api_type = 'qwen'
+# api_type = 'gpt'
+# api_type = 'silicon'
 new_structure = generate_new_structure_using_llm(api_type)
 print(new_structure)
 
@@ -25,9 +27,10 @@ with open(file_path, "w") as file:
 print(f"YAML 文件已保存到: {file_path}")
 
 
-model = YOLO(f'{task_name}.yaml')
+# model = YOLO(f'{task_name}.yaml')
+model = YOLO(file_path, verbose=True)
 
-model.train(data='coco.yaml', epochs=500, imgsz=640,batch=512, device=[4,5], name=task_name, cache=True, plots=True,)
+model.train(data='ultralytics/cfg/datasets/coco.yaml', epochs=500, imgsz=640,batch=512, device=[4,5], name=task_name, cache=True, plots=True,)
     
 # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
 

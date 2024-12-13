@@ -9,6 +9,8 @@ system_content = "You are Quoc V. Le, a computer scientist and artificial intell
 
 # YAML 内容作为多行字符串
 yolov8_config_yaml = """
+# Optimized YOLOv8 object detection model with P3-P5 outputs. Targeting performance improvement without increasing parameters.
+
 # Parameters
 nc: 80 # number of classes
 scales: # model compound scaling constants, i.e. 'model=yolov8n.yaml' will call yolov8.yaml with scale 'n'
@@ -54,9 +56,62 @@ head:
   - [[15, 18, 21], 1, Detect, [nc]] # Detect(P3, P4, P5)
 """
 
+yolov11_config_yaml = """
+# YOLO11 object detection model with P3-P5 outputs. For Usage examples see https://docs.ultralytics.com/tasks/detect
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call yolo11.yaml with scale 'n'
+  # [depth, width, max_channels]
+  n: [0.50, 0.25, 1024] # summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
+  s: [0.50, 0.50, 1024] # summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
+  m: [0.50, 1.00, 512] # summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
+  l: [1.00, 1.00, 512] # summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
+  x: [1.00, 1.50, 512] # summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
+
+# YOLO11n backbone
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]] # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]] # 1-P2/4
+  - [-1, 2, C3k2, [256, False, 0.25]]
+  - [-1, 1, Conv, [256, 3, 2]] # 3-P3/8
+  - [-1, 2, C3k2, [512, False, 0.25]]
+  - [-1, 1, Conv, [512, 3, 2]] # 5-P4/16
+  - [-1, 2, C3k2, [512, True]]
+  - [-1, 1, Conv, [1024, 3, 2]] # 7-P5/32
+  - [-1, 2, C3k2, [1024, True]]
+  - [-1, 1, SPPF, [1024, 5]] # 9
+  - [-1, 2, C2PSA, [1024]] # 10
+
+# YOLO11n head
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 6], 1, Concat, [1]] # cat backbone P4
+  - [-1, 2, C3k2, [512, False]] # 13
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 4], 1, Concat, [1]] # cat backbone P3
+  - [-1, 2, C3k2, [256, False]] # 16 (P3/8-small)
+
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 13], 1, Concat, [1]] # cat head P4
+  - [-1, 2, C3k2, [512, False]] # 19 (P4/16-medium)
+
+  - [-1, 1, Conv, [512, 3, 2]]
+  - [[-1, 10], 1, Concat, [1]] # cat head P5
+  - [-1, 2, C3k2, [1024, True]] # 22 (P5/32-large)
+
+  - [[16, 19, 22], 1, Detect, [nc]] # Detect(P3, P4, P5)
+"""
+
+modules = "['Classify','Conv','ConvTranspose','GhostConv','Bottleneck','GhostBottleneck','SPP','SPPF','C2fPSA','C2PSA','DWConv','Focus','BottleneckCSP','C1,'C2','C2f','C3k2','RepNCSPELAN4','ELAN1','ADown','AConv','SPPELAN','C2fAttn','C3,'C3TR','C3Ghost','nn.ConvTranspose2d','DWConvTranspose2d','C3x','RepC3','PSA','SCDown','C2fCIB']"
+
+
 suffix = '''Please do not include anything else other than configuration in your response!'''
 
-user_input = f'''The configuration file for yolov8 is {yolov8_config_yaml}'''
+# user_input = f'''You need to analyze where yolov11 is better than yolov8, and then understand and improve on the basis of yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}, The configuration file for yolov11 is{yolov11_config_yaml}'''
+user_input = f'''You need to analyze yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}'''
 
 
 def generate_new_structure_using_llm(api_type):
@@ -76,8 +131,12 @@ def generate_new_structure_using_llm(api_type):
         print("# Api key error!")
     
     # prompt_cn = '根据现有配置，生成一个新的优化后的配置，优化目标：参数量不增加或参数量减少情况下提升目标检测性能。具体的module顺序你可以更改，channel数值也可以变化。总之，你可以根据自己的理解生成新结构，结果比原有配置性能更优就可以。'
-    prompt = 'Generate a new optimized configuration based on the existing configuration. Optimization goal: Improve target detection performance when the number of parameters does not increase or decreases. You can change the specific module order, and the channel value can also change. In short, you can generate a new structure according to your own understanding, and the result is better than the original configuration.'
-    
+    prompt = '''Generate a new optimized configuration based on the existing configuration.
+             Optimization goal: Improve target detection performance when the number of parameters does not increase or decreases. 
+             You can change the specific module order, and the channel value can also change. However, modules can only be types in {} and cannot be generated randomly. Sizes of tensors must match except in dimension 1.
+             In short, you can generate a new structure according to your own understanding, and the result is better than the original configuration.'''
+             
+             
     messages = [
             {"role": "system", "content": system_content},
             {"role": "user", "content": user_input + prompt + suffix},
@@ -137,8 +196,8 @@ def generate_new_structure_using_llm(api_type):
         )
         response = client.chat.completions.create(
             # model="deepseek-ai/DeepSeek-V2.5",
-            # model="Qwen/Qwen2.5-7B-Instruct",
-            model="THUDM/glm-4-9b-chat",
+            model="Qwen/Qwen2.5-7B-Instruct",
+            # model="THUDM/glm-4-9b-chat",
             # model="meta-llama/Meta-Llama-3.1-8B-Instruct",
             messages=messages,
             # stream=False  # 启用流式输出
@@ -162,7 +221,6 @@ def generate_new_structure_using_llm(api_type):
     # print(f'# response:{response}')
     # 获取响应内容
     new_structure = response.choices[0].message.content
-    
     
     
     # 去除 ```yaml 和 ```
