@@ -876,6 +876,7 @@ def plot_results(file="path/to/results.csv", dir="", segment=False, pose=False, 
     else:
         fig, ax = plt.subplots(2, 5, figsize=(12, 6), tight_layout=True)
         index = [1, 2, 3, 4, 5, 8, 9, 10, 6, 7]
+    index = [i + 1 for i in index]  # add time in 0
     ax = ax.ravel()
     files = list(save_dir.glob("results*.csv"))
     assert len(files), f"No results.csv files found in {save_dir.resolve()}, nothing to plot."
