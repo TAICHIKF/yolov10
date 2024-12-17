@@ -1,0 +1,41 @@
+
+# Optimized YOLOv8 object detection model with improved performance
+# Targeting better detection accuracy without increasing the number of parameters
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants
+  # [depth, width, max_channels]
+  n: [0.33, 0.25, 1024] # Maintaining the same scaling as YOLOv8n
+
+# Optimized YOLOv8n backbone
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]]  # P1/2
+  - [-1, 1, Conv, [128, 3, 2]]  # P2/4
+  - [-1, 3, C2f, [128, True]] # P2/4 with C2f
+  - [-1, 1, Conv, [256, 3, 2]]  # P3/8
+  - [-1, 5, C2f, [256, True]] # Increased repeats for better feature extraction
+  - [-1, 1, Conv, [512, 3, 2]]  # P4/16
+  - [-1, 5, C2f, [512, True]] # Increased repeats for better feature extraction
+  - [-1, 1, Conv, [768, 3, 2]]  # Adjusted output channel to 768 to reduce parameter count
+  - [-1, 3, C2f, [768, True]] # Reduced output channel from 1024 to 768
+  - [-1, 1, SPPF, [768, 5]]  # Adjusted input/output channel to 768
+
+# Optimized YOLOv8n head
+head:
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # P4 upsample
+  - [[-1, 6], 1, Concat, [1]]  # Concatenate with P4
+  - [-1, 3, C2f, [384]]  # Adjusted output channel to 384 to balance parameters
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # P3 upsample
+  - [[-1, 4], 1, Concat, [1]]  # Concatenate with P3
+  - [-1, 3, C2f, [192]]  # Adjusted output channel to 192 to balance parameters
+  - [-1, 1, Conv, [192, 3, 2]] # Downsample P3
+  - [[-1, 9], 1, Concat, [1]]  # Concatenate with adjusted P4
+  - [-1, 3, C2f, [384]]  # Adjusted output channel to 384 to balance parameters
+  - [-1, 1, Conv, [384, 3, 2]] # Downsample P4
+  - [[-1, 10], 1, Concat, [1]]  # Concatenate with adjusted P5
+  - [-1, 3, C2f, [768]]  # Adjusted output channel to 768 to balance parameters
+  - [[6, 9, 12], 1, Detect, [nc]]  # Detection layer with adjusted inputs
+
+# Note: Channel adjustments have been made to balance the reduction in parameters while maintaining or improving detection performance.

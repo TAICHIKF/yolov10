@@ -3,7 +3,8 @@ from zhipuai import ZhipuAI
 import re
 import time
 import logging
-
+import asyncio
+import fastapi_poe as fp
 
 # YAML 内容作为多行字符串
 yolov8_config_yaml = """
@@ -13,56 +14,85 @@ yolov8_config_yaml = """
 nc: 80 # number of classes
 scales: # model compound scaling constants, i.e. 'model=yolov8n.yaml' will call yolov8.yaml with scale 'n'
   # [depth, width, max_channels]
-  n: [0.33, 0.25, 1024] # YOLOv8n summary: 225 layers,  3157200 parameters,  3157184 gradients,   8.9 GFLOPs
-  s: [0.33, 0.50, 1024] # YOLOv8s summary: 225 layers, 11166560 parameters, 11166544 gradients,  28.8 GFLOPs
-  m: [0.67, 0.75, 768] # YOLOv8m summary: 295 layers, 25902640 parameters, 25902624 gradients,  79.3 GFLOPs
-  l: [1.00, 1.00, 512] # YOLOv8l summary: 365 layers, 43691520 parameters, 43691504 gradients, 165.7 GFLOPs
-  x: [1.00, 1.25, 512] # YOLOv8x summary: 365 layers, 68229648 parameters, 68229632 gradients, 258.5 GFLOPs
+  n: [0.33, 0.25, 1024] # YOLOv8n summary: 225 layers, 3157200 parameters, 3157184 gradients, 8.9 GFLOPs
 
 # YOLOv8n backbone
 backbone:
   # [from, repeats, module, args]
-  - [-1, 1, Conv, [64, 3, 2]] # 0-P1/2
-  - [-1, 1, Conv, [128, 3, 2]] # 1-P2/4
-  - [-1, 3, C2f, [128, True]]
-  - [-1, 1, Conv, [256, 3, 2]] # 3-P3/8
-  - [-1, 6, C2f, [256, True]]
-  - [-1, 1, Conv, [512, 3, 2]] # 5-P4/16
-  - [-1, 6, C2f, [512, True]]
-  - [-1, 1, Conv, [1024, 3, 2]] # 7-P5/32
-  - [-1, 3, C2f, [1024, True]]
-  - [-1, 1, SPPF, [1024, 5]] # 9
+  - [-1, 1, Conv, [64, 3, 2]]  # 0-P1/2 第0层，-1代表将上层的输入作为本层的输入。第0层的输入是640*640*3的图像。Conv代表卷积层，相应的参数：64代表输出通道数，3代表卷积核大小k，2代表stride步长。
+  - [-1, 1, Conv, [128, 3, 2]]  # 1-P2/4 第1层，本层和上一层是一样的操作（128代表输出通道数，3代表卷积核大小k，2代表stride步长）
+  - [-1, 3, C2f, [128, True]] # 第2层，本层是C2f模块，3代表本层重复3次。128代表输出通道数，True表示Bottleneck有shortcut。
+  - [-1, 1, Conv, [256, 3, 2]]  # 3-P3/8 第3层，进行卷积操作（256代表输出通道数，3代表卷积核大小k，2代表stride步长），输出特征图尺寸为80*80*256（卷积的参数都没变，所以都是长宽变成原来的1/2，和之前一样），特征图的长宽已经变成输入图像的1/8。
+  - [-1, 6, C2f, [256, True]] # 第4层，本层是C2f模块，可以参考第2层的讲解。6代表本层重复6次。256代表输出通道数，True表示Bottleneck有shortcut。经过这层之后，特征图尺寸依旧是80*80*256。
+  - [-1, 1, Conv, [512, 3, 2]]  # 5-P4/16 第5层，进行卷积操作（512代表输出通道数，3代表卷积核大小k，2代表stride步长），输出特征图尺寸为40*40*512（卷积的参数都没变，所以都是长宽变成原来的1/2，和之前一样），特征图的长宽已经变成输入图像的1/16。
+  - [-1, 6, C2f, [512, True]] # 第6层，本层是C2f模块，可以参考第2层的讲解。6代表本层重复6次。512代表输出通道数，True表示Bottleneck有shortcut。经过这层之后，特征图尺寸依旧是40*40*512。
+  - [-1, 1, Conv, [1024, 3, 2]]  # 7-P5/32 第7层，进行卷积操作（1024代表输出通道数，3代表卷积核大小k，2代表stride步长），输出特征图尺寸为20*20*1024（卷积的参数都没变，所以都是长宽变成原来的1/2，和之前一样），特征图的长宽已经变成输入图像的1/32。
+  - [-1, 3, C2f, [1024, True]] #第8层，本层是C2f模块，可以参考第2层的讲解。3代表本层重复3次。1024代表输出通道数，True表示Bottleneck有shortcut。经过这层之后，特征图尺寸依旧是20*20*1024。
+  - [-1, 1, SPPF, [1024, 5]]  # 9 第9层，本层是快速空间金字塔池化层（SPPF）。1024代表输出通道数，5代表池化核大小k。结合模块结构图和代码可以看出，最后concat得到的特征图尺寸是20*20*（512*4），经过一次Conv得到20*20*1024。
 
 # YOLOv8n head
 head:
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 6], 1, Concat, [1]] # cat backbone P4
-  - [-1, 3, C2f, [512]] # 12
-
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 4], 1, Concat, [1]] # cat backbone P3
-  - [-1, 3, C2f, [256]] # 15 (P3/8-small)
-
-  - [-1, 1, Conv, [256, 3, 2]]
-  - [[-1, 12], 1, Concat, [1]] # cat head P4
-  - [-1, 3, C2f, [512]] # 18 (P4/16-medium)
-
-  - [-1, 1, Conv, [512, 3, 2]]
-  - [[-1, 9], 1, Concat, [1]] # cat head P5
-  - [-1, 3, C2f, [1024]] # 21 (P5/32-large)
-
-  - [[15, 18, 21], 1, Detect, [nc]] # Detect(P3, P4, P5)
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 第10层，本层是上采样层。-1代表将上层的输出作为本层的输入。None代表上采样的size=None（输出尺寸）不指定。2代表scale_factor=2，表示输出的尺寸是输入尺寸的2倍。mode=nearest代表使用的上采样算法为最近邻插值算法。经过这层之后，特征图的长和宽变成原来的两倍，通道数不变，所以最终尺寸为40*40*1024。
+  - [[-1, 6], 1, Concat, [1]]  # cat backbone P4 第11层，本层是concat层，[-1, 6]代表将上层和第6层的输出作为本层的输入。[1]代表concat拼接的维度是1。从上面的分析可知，上层的输出尺寸是40*40*1024，第6层的输出是40*40*512，最终本层的输出尺寸为40*40*1536。
+  - [-1, 3, C2f, [512]]  # 12 第12层，本层是C2f模块，可以参考第2层的讲解。3代表本层重复3次。512代表输出通道数。与Backbone中C2f不同的是，此处的C2f的bottleneck模块的shortcut=False。
+ 
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 第13层，本层也是上采样层（参考第10层）。经过这层之后，特征图的长和宽变成原来的两倍，通道数不变，所以最终尺寸为80*80*512。
+  - [[-1, 4], 1, Concat, [1]]  # cat backbone P3 第14层，本层是concat层，[-1, 4]代表将上层和第4层的输出作为本层的输入。[1]代表concat拼接的维度是1。从上面的分析可知，上层的输出尺寸是80*80*512，第6层的输出是80*80*256，最终本层的输出尺寸为80*80*768。
+  - [-1, 3, C2f, [256]]  # 15 (P3/8-small) 第15层，本层是C2f模块，可以参考第2层的讲解。3代表本层重复3次。256代表输出通道数。经过这层之后，特征图尺寸变为80*80*256，特征图的长宽已经变成输入图像的1/8。
+ 
+  - [-1, 1, Conv, [256, 3, 2]] # 第16层，进行卷积操作（256代表输出通道数，3代表卷积核大小k，2代表stride步长），输出特征图尺寸为40*40*256（卷积的参数都没变，所以都是长宽变成原来的1/2，和之前一样）。
+  - [[-1, 12], 1, Concat, [1]]  # cat head P4 第17层，本层是concat层，[-1, 12]代表将上层和第12层的输出作为本层的输入。[1]代表concat拼接的维度是1。从上面的分析可知，上层的输出尺寸是40*40*256，第12层的输出是40*40*512，最终本层的输出尺寸为40*40*768。
+  - [-1, 3, C2f, [512]]  # 18 (P4/16-medium) 第18层，本层是C2f模块，可以参考第2层的讲解。3代表本层重复3次。512代表输出通道数。经过这层之后，特征图尺寸变为40*40*512，特征图的长宽已经变成输入图像的1/16。
+ 
+  - [-1, 1, Conv, [512, 3, 2]] # 第19层，进行卷积操作（512代表输出通道数，3代表卷积核大小k，2代表stride步长），输出特征图尺寸为20*20*512（卷积的参数都没变，所以都是长宽变成原来的1/2，和之前一样）。
+  - [[-1, 9], 1, Concat, [1]]  # cat head P5 第20层，本层是concat层，[-1, 9]代表将上层和第9层的输出作为本层的输入。[1]代表concat拼接的维度是1。从上面的分析可知，上层的输出尺寸是20*20*512，第9层的输出是20*20*1024，最终本层的输出尺寸为20*20*1536。
+  - [-1, 3, C2f, [1024]]  # 21 (P5/32-large) 第21层，本层是C2f模块，可以参考第2层的讲解。3代表本层重复3次。1024代表输出通道数。经过这层之后，特征图尺寸变为20*20*1024，特征图的长宽已经变成输入图像的1/32。
+ 
+  - [[15, 18, 21], 1, Detect, [nc]]  # Detect(P3, P4, P5) 第20层，本层是Detect层，[15, 18, 21]代表将第15、18、21层的输出（分别是80*80*256、40*40*512、20*20*1024）作为本层的输入。nc是数据集的类别数。
 """
 
 modules = "['Classify','Conv','ConvTranspose','GhostConv','Bottleneck','GhostBottleneck','SPP','SPPF','C2fPSA','C2PSA','DWConv','Focus','BottleneckCSP','C1,'C2','C2f','C3k2','RepNCSPELAN4','ELAN1','ADown','AConv','SPPELAN','C2fAttn','C3,'C3TR','C3Ghost','nn.ConvTranspose2d','DWConvTranspose2d','C3x','RepC3','PSA','SCDown','C2fCIB']"
 
+# modules_example = '''
+# # A specific example of the use of modules:
 
-system_content = "You are Quoc V. Le, a computer scientist and artificial intelligence researcher who is widely regarded as one of the leading experts in deep learning and neural network architecture search.  Your work in this area has focused on developing efficient algorithms for searching the space of possible neural network architectures, with the goal of finding architectures that perform well on a given task while minimizing the computational cost of training and inference."
+# - [-1, 1, DFL, [16]]
+# - [-1, 1, HGBlock, [64, 128, 256, 3, 6, False, True]]
+# - [-1, 1, HGStem, [64, 128, 256]]
+# - [-1, 1, SPP, [256, 512, [5, 9, 13]]]
+# - [-1, 1, SPPF, [512, 1024, 5]]
+# - [-1, 1, C1, [128, 256, 1]]
+# - [-1, 3, C2, [256, 512, 3, True, 1, 0.5]]
+# - [-1, 3, C3, [512, 1024, 3, True, 1, 0.5]]
+# - [-1, 2, C2f, [256, 512, 2, False, 1, 0.5]]
+# - [-1, 2, C2fAttn, [256, 512, 2, 128, 1, 512, False, 1, 0.5]]
+# - [-1, 1, ImagePoolingAttn, [256, [64, 128], 512, 8, 3, False]]
+# - [-1, 1, ContrastiveHead, []]
+# - [-1, 1, BNContrastiveHead, [256]]
+# - [-1, 3, C3x, [512, 1024, 3, True, 1, 0.5]]
+# - [-1, 3, C3TR, [512, 1024, 3, True, 1, 0.5]]
+# - [-1, 3, C3Ghost, [512, 1024, 3, True, 1, 0.5]]
+# - [-1, 1, GhostBottleneck, [256, 256, 3, 1]]
+# - [-1, 3, Bottleneck, [256, 512, True, 1, [3, 3], 0.5]]
+# - [-1, 3, BottleneckCSP, [256, 512, 3, True, 1, 0.5]]
+# - [-1, 1, Proto, [512, 256, 32]]
+# - [-1, 3, RepC3, [256, 512, 3, 1.0]]
+# - [-1, 2, ResNetLayer, [64, 128, 1, True, 2, 4]]
+# - [-1, 1, RepNCSPELAN4, [256, 512, 256, 128, 1]]
+# - [-1, 1, ADown, [512, 256]]
+# - [-1, 1, SPPELAN, [256, 512, 256, 5]]
+# - [-1, 1, CBFuse, [[0, 1, 2]]]
+# - [-1, 2, CBLinear, [512, [256, 256], 1, 1, None, 1]]
+# - [-1, 1, Silence, []]
+# '''
+
+
+system_content = "You are Quoc V. Le, a computer scientist and artificial intelligence researcher who is widely regarded as one of the leading experts in deep learning and neural network architecture search. Your work in this area has focused on developing efficient algorithms for searching the space of possible neural network architectures, with the goal of finding architectures that perform well on a given task while minimizing the computational cost of training and inference."
 
 # user_input = f'''You need to analyze where yolov11 is better than yolov8, and then understand and improve on the basis of yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}, The configuration file for yolov11 is{yolov11_config_yaml}'''
 user_input = f'''You need to analyze yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}
                  You can modify values in scales, repeats in backbone, channel in module, and channel in head. However, it is important to note that the modified channel values need to match each other.
-                 The parameters, gradients and GFLOPs of the new configuration should not be increased.'''
+                 The methods to keep the number of parameters constant are as follows: 0. Only change the types of some modules, but the number of channels between modules must be strict; 1. Increase the number of layers while reducing the number of channels; 2. Increase the number of channels while reducing the number of layers. In short, the parameters, gradients and GFLOPs of the new configuration should not be increased.'''
 
 suffix = '''Please do not include anything else other than configuration in your response!'''
 
@@ -80,8 +110,9 @@ def generate_new_structure_using_llm(api_type):
             {"role": "user", "content": user_input + prompt + suffix},
         ] 
 
-
-    if api_type == 'gpt' :
+    if api_type == 'Poe':
+        api_key = 'EUPOLRTFOHyyNRhjjEiRlRUMRjfFd0_bPZ2N4PE8PNE'
+    elif api_type == 'gpt' :
         api_key = 'sk-N4zU8nzRn6ifYsbgs0N4UGCHDqX5a6g6AI0OBsSfhk2AuHoV'
     elif api_type == 'glm':
         api_key = 'd374a99b15210255c4ec14118b86c3b7.uESar1mpd1z0Eu9w'
@@ -94,6 +125,25 @@ def generate_new_structure_using_llm(api_type):
     else:
         api_key = None
         print("# Api key error!")
+        
+        
+        
+    if api_type == 'Poe':
+        # Create an asynchronous function to encapsulate the async for loop
+        async def get_responses(api_key, messages):
+            model_name = "GPT-3.5-Turbo"  # "GPT-3.5-Turbo", "GPT-4o", "GPT-4-Turbo", 
+            # time.sleep(5)  # 等待 60 秒后再尝试
+            response = ""
+            async for partial in fp.get_bot_response(messages=messages,  
+                                                     bot_name=model_name,
+                                                     api_key=api_key):
+                # print(partial)
+                response += partial.text
+            return response
+
+        response = asyncio.run(get_responses(api_key=api_key, messages=messages))
+        # logging.info(f'response:{response}')
+
 
     if api_type == 'gpt' :
         # 配置 OpenAI API
@@ -130,11 +180,11 @@ def generate_new_structure_using_llm(api_type):
                 # model="qwen1.5-110b-chat",  # 226
                 # model="qwen2-0.5b-instruct",  # fail
                 # model="qwen2-1.5b-instruct",  # rank 1029
-                model="qwen2-72b-instruct", #  110（score）
+                # model="qwen2-72b-instruct", #  110（score）
                 # model="qwen2.5-7b-instruct",  # 
                 # model="qwen2.5-14b-instruct",  # 4
                 # model="qwen2.5-32b-instruct",  # 80.43 / 20;  10 /min
-                # model="qwen2.5-72b-instruct",  #  99.60  60 / min    
+                model="qwen2.5-72b-instruct",  #  99.60  60 / min    
                 # model="qwen2.5-coder-1.5b-instruct",  #  99.60  60 / min    
                 # model="qwen2.5-coder-7b-instruct",  #  99.60  60 / min    
                 messages=messages,
