@@ -101,8 +101,9 @@ def generate_new_structure_using_llm(api_type):
     # prompt_cn = '根据现有配置，生成一个新的优化后的配置，优化目标：参数量不增加或参数量减少情况下提升目标检测性能。具体的module顺序你可以更改，channel数值也可以变化。总之，你可以根据自己的理解生成新结构，结果比原有配置性能更优就可以。'
     prompt = f'''Generate a new optimized configuration based on the existing configuration.
              Optimization goal: Improve target detection performance when the number of parameters does not increase or decreases. 
-             You can change the specific module order, and the channel value can also change. However, modules can only be types in {modules} and cannot be generated randomly. Sizes of tensors must match except in dimension 1.
+             You can change the specific module order, and the channel value can also change. Sizes of tensors must match except in dimension 1.
              In short, you can generate a new structure according to your own understanding, and the result is better than the original configuration.'''
+            #  However, modules can only be types in {modules} and cannot be generated randomly.
              
              
     messages = [
@@ -149,8 +150,8 @@ def generate_new_structure_using_llm(api_type):
         # 配置 OpenAI API
         client = OpenAI(api_key=api_key, base_url="https://api.chatanywhere.tech/v1")
         response = client.chat.completions.create(
-            # model='gpt-4',  # 使用适当的模型名称
-            model='gpt-4o-mini',  # 
+            model='gpt-4',  # 使用适当的模型名称
+            # model='gpt-4o-mini',  # 
             # model='gpt-3.5-turbo',  #     (200 / per day)
             messages=messages,
             temperature=1,
