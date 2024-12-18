@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-# '''
+'''
 # yolo detect train data=coco.yaml model=yolov10n/s/m/b/l/x.yaml epochs=500 batch=256 imgsz=640 device=0,1,2,3,4,5,6,7
-# ps aux | grep yolov | grep -v grep | awk '{print $2}' | xargs kill -9
+ ps aux | grep yolov | grep -v grep | awk '{print $2}' | xargs kill -9
 # yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0,1,2,3
 # yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0 resume model=r'D:\code\yolov10\runs\detect\train\weights\last.pt'
-# '''
+ '''
 
 # import time
 import os
@@ -13,10 +13,16 @@ import logging
 from ultralytics import YOLO
 from LLM.llm_generate import generate_new_structure_using_llm
 
-
+percent = '1'
 task_name = 'yolov8puls9'
 # 保存为文件
 file_path = f"./llmv8/{task_name}.yaml"
+
+if percent=='1':
+    coco_data = '/home/kongfei/code/yolov10/llmv8/coco_1percent.yaml'
+else:
+    coco_data = '/home/kongfei/code/yolov10/llmv8/coco.yaml'
+
 
 # 检查文件是否已经存在
 if os.path.exists(file_path):
@@ -32,9 +38,8 @@ else:
         file.write(new_structure)
     print(f"YAML 文件已保存到: {file_path}")
 
-
 model = YOLO(file_path, verbose=True)
-model.train(data='/home/kongfei/code/yolov10/llmv8/coco.yaml', epochs=3, imgsz=640,batch=128, device=[4,5,6,7], name=task_name, cache=True, plots=True)
+model.train(data=coco_data, epochs=10, imgsz=640,batch=128, device=[2,3,4,5], name=task_name, cache=True, plots=True)
 # model.train(data='ultralytics/cfg/datasets/coco.yaml', epochs=600, imgsz=640,batch=160, device=[0,1,2,3], name=task_name, cache=True, plots=True,resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov8puls4/weights/last.pt')
 
 
