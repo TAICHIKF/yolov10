@@ -14,7 +14,6 @@ import warnings
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
-
 import numpy as np
 import torch
 from torch import distributed as dist
@@ -609,25 +608,48 @@ class BaseTrainer:
     #     with open(self.csv, "a") as f:
     #         f.write(s + ("%23.5g," * n % tuple([self.epoch + 1] + vals)).rstrip(",") + "\n")
 
+    # def save_metrics(self, metrics):
+    #     """Saves training metrics to a CSV file with a timestamp."""
+    #     # 获取当前时间并格式化为 "年-月-日 小时:分钟"
+    #     current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+    #     # 提取字典的键和值
+    #     keys, vals = list(metrics.keys()), list(metrics.values())
+    #     # 计算列数，新增时间列
+    #     n = len(metrics) + 2  # 增加2列：时间和epoch
+    #     # 构建 CSV 文件的表头，如果文件不存在则添加表头
+    #     s = "" if self.csv.exists() else (("%23s," * n % tuple(["time", "epoch"] + keys)).rstrip(",") + "\n")
+    #     # 打开文件并写入时间、epoch 和指标值
+    #     with open(self.csv, "a") as f:
+    #         f.write(s + ("%23s," + "%23.5g," * (n - 1)) % tuple([current_time, self.epoch + 1] + vals) + "\n")
+    
+    
     def save_metrics(self, metrics):
-        from datetime import datetime
-        
         """Saves training metrics to a CSV file with a timestamp."""
-        # 获取当前时间并格式化为 "年-月-日 小时:分钟"
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-
+        
+        # 获取当前时间并格式化为 "YYYYMMDDHHMM" 格式
+        current_time = int(datetime.now().strftime("%Y%m%d%H%M"))
         # 提取字典的键和值
         keys, vals = list(metrics.keys()), list(metrics.values())
-
-        # 计算列数，新增时间列
-        n = len(metrics) + 2  # 增加2列：时间和epoch
-
-        # 构建 CSV 文件的表头，如果文件不存在则添加表头
-        s = "" if self.csv.exists() else (("%23s," * n % tuple(["time", "epoch"] + keys)).rstrip(",") + "\n")
-
+        # 计算列数，新增2列：时间和epoch
+        n = len(metrics) + 2  # 增加2列：time和epoch
+        
+        # 如果文件不存在，则创建并写入表头
+        header_exists = os.path.exists(self.csv)
+        if not header_exists:
+            header = "%23s," * n  # 格式化为23个字符宽度
+            header = header.rstrip(",")  # 去掉最后一个逗号
+            header = header + "\n"
+            with open(self.csv, "a") as f:
+                # 将 "epoch" 放在 "time" 后面
+                f.write(header % tuple(["time", "epoch"] + keys))
+        
         # 打开文件并写入时间、epoch 和指标值
         with open(self.csv, "a") as f:
-            f.write(s + ("%23s," + "%23.5g," * (n - 1)) % tuple([current_time, self.epoch + 1] + vals) + "\n")
+            # 将 "epoch" 和 "time" 对调
+            row = "%23s,"+ "%23.5g,"  + "%23.5g," * (n - 2)
+            f.write(row % tuple([current_time, self.epoch + 1] + vals) + "\n")
+
+
 
     def plot_metrics(self):
         """Plot and display metrics visually."""
