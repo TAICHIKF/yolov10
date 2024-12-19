@@ -6,6 +6,7 @@ import logging
 import asyncio
 import fastapi_poe as fp
 
+
 # YAML 内容作为多行字符串
 yolov8_config_yaml = """
 # Optimized YOLOv8 object detection model with P3-P5 outputs. Targeting performance improvement without increasing parameters.
@@ -86,9 +87,7 @@ modules = "['Classify','Conv','ConvTranspose','GhostConv','Bottleneck','GhostBot
 # - [-1, 1, Silence, []]
 # '''
 
-
-system_content = "You are Quoc V. Le, a computer scientist and artificial intelligence researcher who is widely regarded as one of the leading experts in deep learning and neural network architecture search. Your work in this area has focused on developing efficient algorithms for searching the space of possible neural network architectures, with the goal of finding architectures that perform well on a given task while minimizing the computational cost of training and inference."
-
+system_content = "You are a computer scientist and artificial intelligence researcher who is widely regarded as one of the leading experts in yolov8  deep learning models and neural network architecture search. Your work in this area has focused on developing efficient algorithms for searching the space of possible neural network architectures, with the goal of finding architectures that perform well on a given task while minimizing the computational cost of training and inference."
 # user_input = f'''You need to analyze where yolov11 is better than yolov8, and then understand and improve on the basis of yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}, The configuration file for yolov11 is{yolov11_config_yaml}'''
 user_input = f'''You need to analyze yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}
                  You can modify values in scales, repeats in backbone, channel in module, and channel in head. However, it is important to note that the modified channel values need to match each other.
@@ -104,8 +103,7 @@ def generate_new_structure_using_llm(api_type):
              You can change the specific module order, and the channel value can also change. Sizes of tensors must match except in dimension 1.
              In short, you can generate a new structure according to your own understanding, and the result is better than the original configuration.'''
             #  However, modules can only be types in {modules} and cannot be generated randomly.
-             
-             
+           
     messages = [
             {"role": "system", "content": system_content},
             {"role": "user", "content": user_input + prompt + suffix},
@@ -219,15 +217,25 @@ def generate_new_structure_using_llm(api_type):
                 temperature = 0.9,
             )
 
-
     # logging.info(f'# response:{response}')
-    # print(f'# response:{response}')
     # 获取响应内容
     new_structure = response.choices[0].message.content
+    print("------------------------------------")
+    print(f'# new_structure:\n {new_structure}')
     
-    
-    # 去除 ```yaml 和 ```
-    cleaned_new_yaml = new_structure.strip("```yaml").strip("```")
+    #去除 ```yaml 和 ```
+    # cleaned_new_yaml = new_structure.strip("```yaml").strip("```")
 
+    # Extract content between ```yaml and ```
+    pattern = r"```yaml\s*(.*?)```"
+    content = re.search(pattern, new_structure, re.DOTALL)
     
-    return cleaned_new_yaml
+    if content:
+        cleaned_new_yaml = content.group(1)
+        print(cleaned_new_yaml)  # This will print the content between ```yaml and ```
+        return cleaned_new_yaml
+    else:
+        print("No content found")
+        return new_structure
+        
+    

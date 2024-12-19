@@ -18,6 +18,7 @@ pip install -r requirements.txt
 pip install -e .
 
 # pip install ultralytics -i https://pypi.tuna.tsinghua.edu.cn/simple 
+pip install fastapi_poe -i https://pypi.tuna.tsinghua.edu.cn/simple 
 pip install openai -i https://pypi.tuna.tsinghua.edu.cn/simple 
 pip install zhipuai -i https://pypi.tuna.tsinghua.edu.cn/simple 
 pip install wandb -i https://pypi.tuna.tsinghua.edu.cn/simple 
