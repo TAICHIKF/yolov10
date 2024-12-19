@@ -12,15 +12,23 @@ import os
 import logging
 from ultralytics import YOLO
 from LLM.llm_generate import generate_new_structure_using_llm
+import yaml
 
-percent = 'all'
+
+percent = '5'
 task_name = 'yolov8puls10'
 file_path = f"./llmv8/{task_name}.yaml"
 
-if percent=='1':
-    coco_data = '/home/kongfei/code/yolov10/llmv8/coco_1percent.yaml'
-else:
-    coco_data = '/home/kongfei/code/yolov10/llmv8/coco.yaml'
+coco_data = '/home/kongfei/code/yolov10/llmv8/coco.yaml'
+
+# 加载yaml文件
+with open(coco_data, 'r') as file:
+    config = yaml.safe_load(file)
+# 根据条件修改配置
+if percent!='100':
+    config['train'] = f'train2017_{percent}percent.txt'
+# 使用修改后的配置进行训练
+print(config['train'])
 
 
 # 检查文件是否已经存在
