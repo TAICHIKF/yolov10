@@ -13,9 +13,8 @@ import logging
 from ultralytics import YOLO
 from LLM.llm_generate import generate_new_structure_using_llm
 
-percent = '1'
-task_name = 'yolov8puls9'
-# 保存为文件
+percent = 'all'
+task_name = 'yolov8puls10'
 file_path = f"./llmv8/{task_name}.yaml"
 
 if percent=='1':
@@ -39,7 +38,7 @@ else:
     print(f"YAML 文件已保存到: {file_path}")
 
 model = YOLO(file_path, verbose=True)
-model.train(data=coco_data, epochs=10, imgsz=640,batch=128, device=[2,3,4,5], name=task_name, cache=True, plots=True)
+model.train(data=coco_data, epochs=1500, imgsz=640,batch=128, device=[4,5,6,7], name=task_name, cache=True, plots=True)
 # model.train(data='ultralytics/cfg/datasets/coco.yaml', epochs=600, imgsz=640,batch=160, device=[0,1,2,3], name=task_name, cache=True, plots=True,resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov8puls4/weights/last.pt')
 
 
