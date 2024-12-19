@@ -138,6 +138,7 @@ dmypy.json
 .pyre/
 
 # datasets and projects
+llmv8/
 datasets/
 runs/
 wandb/
