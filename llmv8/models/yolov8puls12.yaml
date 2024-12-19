@@ -1,0 +1,41 @@
+
+# Optimized YOLOv8 object detection model with P3-P5 outputs. Improved performance with no increase in parameters.
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolov8n.yaml' will call yolov8.yaml with scale 'n'
+  # [depth, width, max_channels]
+  n: [0.40, 0.22, 1024] # Adjusted depth and width scaling to balance number of parameters and performance.
+
+# YOLOv8n backbone
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]]  # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]  # 1-P2/4
+  - [-1, 2, C2f, [128, True]]  # Reduced repeats for efficiency
+  - [-1, 1, Conv, [256, 3, 2]]  # 3-P3/8
+  - [-1, 8, C2f, [192, True]]  # Increased repeats but reduced channels for better feature extraction
+  - [-1, 1, Conv, [384, 3, 2]]  # 5-P4/16
+  - [-1, 4, C2f, [384, True]]  # Reduced repeats, increased channels to balance depth
+  - [-1, 1, Conv, [768, 3, 2]]  # 7-P5/32
+  - [-1, 2, C2f, [768, True]]  # Reduced repeats, increased efficiency
+  - [-1, 1, SPPF, [768, 5]]  # Adjusted SPPF channels to 768 for fewer parameters
+
+# YOLOv8n head
+head:
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 10
+  - [[-1, 6], 1, Concat, [1]]  # cat backbone P4
+  - [-1, 2, C2f, [384]]  # Reduced repeats, adjusted channels
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 13
+  - [[-1, 4], 1, Concat, [1]]  # cat backbone P3
+  - [-1, 2, C2f, [192]]  # Reduced repeats, adjusted channels
+  - [-1, 1, Conv, [192, 3, 2]]  # 16
+  - [[-1, 12], 1, Concat, [1]]  # cat head P4
+  - [-1, 3, C2f, [384]]  # Reduced repeats, adjusted channels
+  - [-1, 1, Conv, [384, 3, 2]]  # 19
+  - [[-1, 9], 1, Concat, [1]]  # cat head P5
+  - [-1, 3, C2f, [768]]  # Adjusted repeats and channels
+  - [[15, 18, 21], 1, Detect, [nc]]  # Detect(P3, P4, P5)
+
+
+# YOLOv8puls12 summary: 232 layers, 1834208 parameters, 1834192 gradients, 6.4 GFLOPs

@@ -87,8 +87,7 @@ modules = "['Classify','Conv','ConvTranspose','GhostConv','Bottleneck','GhostBot
 # '''
 
 
-system_content = "You are Quoc V. Le, a computer scientist and artificial intelligence researcher who is widely regarded as one of the leading experts in deep learning and neural network architecture search. Your work in this area has focused on developing efficient algorithms for searching the space of possible neural network architectures, with the goal of finding architectures that perform well on a given task while minimizing the computational cost of training and inference."
-
+system_content = "You are a computer scientist and artificial intelligence researcher who is widely regarded as one of the leading experts in yolov8  deep learning models and neural network architecture search. Your work in this area has focused on developing efficient algorithms for searching the space of possible neural network architectures, with the goal of finding architectures that perform well on a given task while minimizing the computational cost of training and inference."
 # user_input = f'''You need to analyze where yolov11 is better than yolov8, and then understand and improve on the basis of yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}, The configuration file for yolov11 is{yolov11_config_yaml}'''
 user_input = f'''You need to analyze yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}
                  You can modify values in scales, repeats in backbone, channel in module, and channel in head. However, it is important to note that the modified channel values need to match each other.
@@ -127,12 +126,11 @@ def generate_new_structure_using_llm(api_type):
         api_key = None
         print("# Api key error!")
         
-        
-        
     if api_type == 'Poe':
         # Create an asynchronous function to encapsulate the async for loop
         async def get_responses(api_key, messages):
-            model_name = "GPT-3.5-Turbo"  # "GPT-3.5-Turbo", "GPT-4o", "GPT-4-Turbo", 
+            model_name = "GPT-4o"  # "GPT-3.5-Turbo", "GPT-4o", "GPT-4-Turbo",  "Llama-3.1-405B-T"
+            # model_name = "o1-preview"  # "GPT-3.5-Turbo", "GPT-4o", "GPT-4-Turbo",  "Llama-3.1-405B-T"
             # time.sleep(5)  # 等待 60 秒后再尝试
             response = ""
             async for partial in fp.get_bot_response(messages=messages,  
@@ -143,7 +141,7 @@ def generate_new_structure_using_llm(api_type):
             return response
 
         response = asyncio.run(get_responses(api_key=api_key, messages=messages))
-        # logging.info(f'response:{response}')
+        logging.info(f'response:{response}')
 
 
     if api_type == 'gpt' :
@@ -223,8 +221,13 @@ def generate_new_structure_using_llm(api_type):
     # logging.info(f'# response:{response}')
     # print(f'# response:{response}')
     # 获取响应内容
-    new_structure = response.choices[0].message.content
     
+    
+        # 获取响应内容 
+    if api_type != 'Poe':
+        new_structure = response.choices[0].message.content
+    else:
+        new_structure = response
     
     # 去除 ```yaml 和 ```
     cleaned_new_yaml = new_structure.strip("```yaml").strip("```")

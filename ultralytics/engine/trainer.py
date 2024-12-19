@@ -10,6 +10,7 @@ import math
 import os
 import subprocess
 import time
+import csv
 import warnings
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -610,24 +611,17 @@ class BaseTrainer:
     #         f.write(s + ("%23.5g," * n % tuple([self.epoch + 1] + vals)).rstrip(",") + "\n")
 
     def save_metrics(self, metrics):
-        from datetime import datetime
-        
-        """Saves training metrics to a CSV file with a timestamp."""
-        # 获取当前时间并格式化为 "年-月-日 小时:分钟"
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-
-        # 提取字典的键和值
+        # current_time = int(datetime.now().strftime("%Y%m%d%H%M"))
         keys, vals = list(metrics.keys()), list(metrics.values())
-
-        # 计算列数，新增时间列
-        n = len(metrics) + 2  # 增加2列：时间和epoch
-
-        # 构建 CSV 文件的表头，如果文件不存在则添加表头
-        s = "" if self.csv.exists() else (("%23s," * n % tuple(["time", "epoch"] + keys)).rstrip(",") + "\n")
-
-        # 打开文件并写入时间、epoch 和指标值
-        with open(self.csv, "a") as f:
-            f.write(s + ("%23s," + "%23.5g," * (n - 1)) % tuple([current_time, self.epoch + 1] + vals) + "\n")
+        n = len(metrics) + 2
+        header_exists = self.csv.exists()
+        with open(self.csv, "a", newline='') as f:
+            writer = csv.writer(f)
+            if not header_exists:
+                writer.writerow([ "time"] + ["epoch"] + keys )
+            writer.writerow([current_time]+ [self.epoch + 1] + vals)
+                
 
     def plot_metrics(self):
         """Plot and display metrics visually."""

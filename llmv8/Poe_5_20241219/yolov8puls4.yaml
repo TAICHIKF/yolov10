@@ -1,0 +1,42 @@
+
+# Optimized YOLOv8 object detection model with P3-P5 outputs. Targeting performance improvement without increasing parameters.
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolov8n.yaml' will call yolov8.yaml with scale 'n'
+  # [depth, width, max_channels]
+  n: [0.34, 0.24, 1024] # Adjusted scaling: slightly increased depth, reduced width to keep parameters constant
+
+# YOLOv8n backbone
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [48, 3, 2]]  # Reduced initial channels to optimize early-stage computation
+  - [-1, 1, Conv, [96, 3, 2]]  # Balanced second layer channels
+  - [-1, 4, C2f, [96, True]]  # Increased repeats for better feature extraction
+  - [-1, 1, Conv, [192, 3, 2]]  # Adjusted to balance channel increase
+  - [-1, 5, C2f, [192, True]]  # Reduced repeats to offset depth scaling
+  - [-1, 1, Conv, [384, 3, 2]]  # Increased channels for deeper feature maps
+  - [-1, 5, C2f, [384, True]]  # Reduced repeats slightly while maintaining performance
+  - [-1, 1, Conv, [768, 3, 2]]  # Adjusted channels for final backbone stage
+  - [-1, 4, C2f, [768, True]]  # Increased repeats for deeper feature extraction
+  - [-1, 1, SPPF, [768, 5]]  # Reduced output channels to optimize final pooling
+
+# YOLOv8n head
+head:
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 6], 1, Concat, [1]]  # cat backbone P4
+  - [-1, 3, C2f, [384]]  # Reduced channels for P4 head refinement
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 4], 1, Concat, [1]]  # cat backbone P3
+  - [-1, 3, C2f, [192]]  # Reduced channels for P3 head refinement
+
+  - [-1, 1, Conv, [192, 3, 2]] # Downsample to P4
+  - [[-1, 12], 1, Concat, [1]]  # cat head P4
+  - [-1, 3, C2f, [384]]  # Balanced channels for P4/16
+
+  - [-1, 1, Conv, [384, 3, 2]] # Downsample to P5
+  - [[-1, 9], 1, Concat, [1]]  # cat head P5
+  - [-1, 3, C2f, [768]]  # Final P5/32 refinement with optimized channels
+
+  - [[15, 18, 21], 1, Detect, [nc]]  # Detect(P3, P4, P5)

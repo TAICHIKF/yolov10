@@ -1,0 +1,42 @@
+
+# Optimized YOLOv8 object detection model with P3-P5 outputs. Targeting performance improvement without increasing parameters.
+
+# Parameters  YOLOv8puls21 summary: 260 layers, 2200560 parameters, 2200544 gradients, 6.6 GFLOPs
+nc: 80 # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolov8n.yaml' will call yolov8.yaml with scale 'n'
+  # [depth, width, max_channels]
+  n: [0.40, 0.22, 1024] # Adjusted scaling: increased depth, reduced width for improved feature extraction while maintaining parameter count
+
+# YOLOv8n backbone
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [48, 3, 2]]  # 0-P1/2 Reduce initial channel size, maintain stride
+  - [-1, 1, Conv, [96, 3, 2]]  # 1-P2/4 
+  - [-1, 4, C2f, [96, True]]  # Increase depth of C2f module
+  - [-1, 1, Conv, [192, 3, 2]]  # 3-P3/8 Increase channel size slightly
+  - [-1, 5, C2f, [192, True]]  # Reduce depth here, balance with increased depth elsewhere
+  - [-1, 1, Conv, [384, 3, 2]]  # 5-P4/16 Increase channel size slightly
+  - [-1, 5, C2f, [384, True]]  # Adjusted depth
+  - [-1, 1, Conv, [768, 3, 2]]  # 7-P5/32
+  - [-1, 4, C2f, [768, True]]  # Increased depth to improve learning features at this stage
+  - [-1, 1, SPPF, [768, 5]]  # Reduced output channels for SPPF to balance parameters
+
+# YOLOv8n head
+head:
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] 
+  - [[-1, 6], 1, Concat, [1]]  # cat backbone P4
+  - [-1, 4, C2f, [384]]  # Increase depth slightly in head
+  
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] 
+  - [[-1, 4], 1, Concat, [1]]  # cat backbone P3
+  - [-1, 3, C2f, [192]]  # Match adjusted channels in backbone
+
+  - [-1, 1, Conv, [192, 3, 2]] 
+  - [[-1, 12], 1, Concat, [1]]  # cat head P4
+  - [-1, 4, C2f, [384]]  # Increase depth
+
+  - [-1, 1, Conv, [384, 3, 2]] 
+  - [[-1, 9], 1, Concat, [1]]  # cat head P5
+  - [-1, 4, C2f, [768]]  # Adjusted depth to match backbone
+  
+  - [[15, 18, 21], 1, Detect, [nc]]  # Detect(P3, P4, P5)

@@ -11,7 +11,8 @@
 # path: ../datasets/coco # dataset root dir
 # path: /mnt/data7T/kongfeidata/data/coco # a03
 path: D:\code\datasets\coco # win3080
-train: train2017.txt # train images (relative to 'path') 118287 images
+# train: train2017.txt # train images (relative to 'path') 118287 images
+train: train2017_1percent.txt # train images (relative to 'path') 118287 images
 val: val2017.txt # val images (relative to 'path') 5000 images
 test: test-dev2017.txt # 20288 of 40670 images, submit to https://competitions.codalab.org/competitions/20794
 

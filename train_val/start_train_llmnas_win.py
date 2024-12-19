@@ -1,85 +1,47 @@
 #!/usr/bin/env python3
-'''
-yolo detect train data=coco.yaml model=yolov10n/s/m/b/l/x.yaml epochs=500 batch=256 imgsz=640 device=0,1,2,3,4,5,6,7
-ps aux | grep yolov | grep -v grep | awk '{print $2}' | xargs kill -9
-yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0,1,2,3
-yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0 resume model=r'D:\code\yolov10\runs\detect\train\weights\last.pt'
-'''
 
+# '''
+# yolo detect train data=coco.yaml model=yolov10n/s/m/b/l/x.yaml epochs=500 batch=256 imgsz=640 device=0,1,2,3,4,5,6,7
+# ps aux | grep yolov | grep -v grep | awk '{print $2}' | xargs kill -9
+# yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0,1,2,3
+# yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0 resume model=r'D:\code\yolov10\runs\detect\train\weights\last.pt'
+# '''
+
+# import time
 import os
-import gc
-import torch
 import logging
-from datetime import datetime
 from ultralytics import YOLO
 from LLM.llm_generate import generate_new_structure_using_llm
-from data_process._percent import num_percent
-
-def clear_gpu_memory():
-    torch.cuda.empty_cache()  # Release unreferenced GPU memory
-    gc.collect()  # Collect garbage to release unused memory
-
-# api_type = 'qwen'
-# api_type = 'gpt'
-# api_type = 'silicon'
-# 调用 LLM API 生成新的网络结构
-
-if __name__ == '__main__': 
-    # 设定任务相关参数
-    percent = '1'
-    total_iterations = 3  # 假设我们循环5次
-    api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他
-    task_name_template = 'yolov8puls'  # 任务名称的模板
 
 
-    if percent == '1':
-        coco_data = 'D:\code\yolov10\llmv8\data\coco_1percent.yaml'
+if __name__ == '__main__':
+    task_name = 'yolov8puls13'
+    # 保存为文件
+    file_path = f"./llmv8/{task_name}.yaml"
+
+    # 检查文件是否已经存在
+    if os.path.exists(file_path):
+        print(f"文件已存在，跳过操作: {file_path}")
     else:
-        coco_data = 'D:\code\yolov10\llmv8\data\coco.yaml'
+        api_type = 'Poe'
+        # api_type = 'qwen'
+        # api_type = 'gpt'
+        # api_type = 'silicon'
+        new_structure = generate_new_structure_using_llm(api_type)
+        print(new_structure)
 
-    # 获取今天的日期，格式化为 'YYYYMMDD'
-    today_time = datetime.now().strftime("%Y%m%d")
+        with open(file_path, "w") as file:
+            file.write(new_structure)
+        print(f"YAML 文件已保存到: {file_path}")
 
-    # 循环生成不同的任务名称
-    for i in range(1, total_iterations + 1):
-        # 动态生成 task_name 和文件路径
-        task_name = f'{task_name_template}{i}'  # 生成 task_name：yolov8puls1, yolov8puls2, ...
 
-        # 动态生成文件路径，包括今天的日期
-        dir_path = f"./llmv8/{api_type}_{total_iterations}_{today_time}"
-        file_path = os.path.join(dir_path, f"{task_name}.yaml")
+    model = YOLO(file_path, verbose=True)
+    model.train(data='ultralytics/cfg/datasets/coco.yaml', epochs=1000, imgsz=640,batch=64, device=[0], name=task_name, cache=True, plots=True)
+# model.train(data='ultralytics/cfg/datasets/coco.yaml', epochs=600, imgsz=640,batch=160, device=[0,1,2,3], name=task_name, cache=True, plots=True,resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov8puls4/weights/last.pt')
 
-        # 确保文件所在的目录存在，如果不存在则创建
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-            print(f"目录已创建: {dir_path}")
-
-        # 检查文件是否已经存在
-        if os.path.exists(file_path):
-            print(f"文件已存在，跳过操作: {file_path}")
-        else:
-            # 调用 LLM API 生成新的网络结构
-            new_structure = generate_new_structure_using_llm(api_type)
-            print(f"生成的新结构: {new_structure}")
-
-            # 将新结构写入 YAML 文件
-            with open(file_path, "w") as file:
-                file.write(new_structure)
-            print(f"YAML 文件已保存到: {file_path}")
-        
-        save_dir=fr'.\runs\detect\{task_name}'
-        if os.path.exists(fr'{save_dir}\results.png'):
-            print(f"已经训练过，跳过操作: {file_path}")
-        else:
-            # 使用生成的 YAML 文件进行模型训练
-            model = YOLO(file_path, verbose=True)
-            model.train(data=coco_data, epochs=10, imgsz=640, batch=32, device=[0], name=task_name, cache=True, plots=True)
-            # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
-            print(f"训练完成: {task_name}")
-            
-            del model  # Delete model instance after each iteration
-            clear_gpu_memory()  # Clear memory
     
+# model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
+
 
 
 """
