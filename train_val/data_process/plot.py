@@ -50,7 +50,7 @@ def plot_results(file="path/to/results.csv", dir="", segment=False, pose=False, 
             s = [x.strip() for x in data.columns]
             x = data.values[:, 1]
             for i, j in enumerate(index):
-                y = data.values[:, j-1].astype("float")
+                y = data.values[:, j].astype("float")
                 # y[y == 0] = np.nan  # don't show zero values
                 ax[i].plot(x, y, marker=".", label=f.stem, linewidth=2, markersize=8)  # actual results
                 ax[i].plot(x, gaussian_filter1d(y, sigma=3), ":", label="smooth", linewidth=2)  # smoothing line
@@ -67,4 +67,4 @@ def plot_results(file="path/to/results.csv", dir="", segment=False, pose=False, 
         on_plot(fname)
         
      
-plot_results(r'D:\code\yolov10\runs\detect\yolov8puls5/results.csv')
+plot_results(r'D:\code\yolov10\runs\detect\yolov8puls1/results.csv')
