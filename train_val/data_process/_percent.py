@@ -4,8 +4,7 @@ import os
 from collections import defaultdict
 
 
-def num_percent(percent):
-    coco_dir = '/mnt/data7T/kongfeidata/data/coco'
+def num_percent(percent, coco_dir):
     
     output_txt = f"{coco_dir}/train2017_{percent}percent.txt"                    # 输出的图像路径txt文件
     if os.path.exists(output_txt):

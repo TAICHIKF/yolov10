@@ -12,7 +12,7 @@ from ultralytics import YOLO
 
 model_name = 'yolov8n'
 model = YOLO(f'{model_name}.yaml')
-model.train(data='coco.yaml', epochs=500, imgsz=640, batch=128, device=[4,5], name=model_name, cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov8n/weights/last.pt')
+model.train(data='./llmv8/data/coco_1percent.yaml', epochs=1500, imgsz=640, batch=128, device=[0,1,2,3], name=model_name, cache=True, plots=True,)
     
 # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
 # model.train(data="coco8.yaml", epochs=100, imgsz=640)

@@ -25,11 +25,13 @@ def clear_gpu_memory():
 
 
 percent = '5'
-total_iterations = 3  # 假设我们循环5次
-api_type = 'qwen'  # 设置API类型，可以是 'Poe' 或其他,qwen
+coco_dir = '/mnt/data7T/kongfeidata/data/coco' # a03
+
+total_iterations = 15  # 假设我们循环5次
+api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他,qwen
 task_name_template = 'yolov8puls'  # 任务名称的模板
 
-num_percent(percent)
+num_percent(percent, coco_dir)
 
 # task_name = 'yolov8puls10'
 task_name_template = 'yolov8puls'  # 任务名称的模板
@@ -63,7 +65,7 @@ for i in range(1, total_iterations + 1):
     else:
         # 调用 LLM API 生成新的网络结构
         new_structure = generate_new_structure_using_llm(api_type)
-        print(f"生成的新结构: {new_structure}")
+        # print(f"生成的新结构: {new_structure}")
         # 将新结构写入 YAML 文件
         with open(file_path, "w") as file:
             file.write(new_structure)
