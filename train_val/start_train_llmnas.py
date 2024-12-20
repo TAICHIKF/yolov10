@@ -15,8 +15,8 @@ from LLM.llm_generate import generate_new_structure_using_llm
 import yaml
 
 
-percent = '5'
-task_name = 'yolov8puls10'
+percent = '1'
+task_name = 'yolov8puls12'
 file_path = f"./llmv8/{task_name}.yaml"
 
 coco_data = '/home/kongfei/code/yolov10/llmv8/coco.yaml'
@@ -28,15 +28,16 @@ with open(coco_data, 'r') as file:
 if percent!='100':
     config['train'] = f'train2017_{percent}percent.txt'
 # 使用修改后的配置进行训练
-print(config['train'])
+print("# config['train']", config['train'])
 
 
 # 检查文件是否已经存在
 if os.path.exists(file_path):
     print(f"文件已存在，跳过操作: {file_path}")
 else:
+    api_type = 'Poe'
     # api_type = 'qwen'
-    api_type = 'gpt'
+    # api_type = 'gpt'
     # api_type = 'silicon'
     new_structure = generate_new_structure_using_llm(api_type)
     print(new_structure)
@@ -46,7 +47,7 @@ else:
     print(f"YAML 文件已保存到: {file_path}")
 
 model = YOLO(file_path, verbose=True)
-model.train(data=coco_data, epochs=1500, imgsz=640,batch=128, device=[4,5,6,7], name=task_name, cache=True, plots=True)
+# model.train(data=coco_data, epochs=1500, imgsz=640,batch=128, device=[4,5,6,7], name=task_name, cache=True, plots=True)
 # model.train(data='ultralytics/cfg/datasets/coco.yaml', epochs=600, imgsz=640,batch=160, device=[0,1,2,3], name=task_name, cache=True, plots=True,resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov8puls4/weights/last.pt')
 
 

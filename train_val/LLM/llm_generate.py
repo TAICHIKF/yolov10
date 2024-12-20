@@ -4,6 +4,7 @@ import re
 import time
 import logging
 import asyncio
+import requests
 import fastapi_poe as fp
 
 # YAML 内容作为多行字符串
@@ -131,22 +132,22 @@ def generate_new_structure_using_llm(api_type):
         
     if api_type == 'Poe':
         # Create an asynchronous function to encapsulate the async for loop
-        async def get_responses(api_key, messages):
-            model_name = "GPT-3.5-Turbo"  # "GPT-3.5-Turbo", "GPT-4o", "GPT-4-Turbo", 
-            # time.sleep(5)  # 等待 60 秒后再尝试
-            response = ""
-            async for partial in fp.get_bot_response(messages=messages,  
-                                                     bot_name=model_name,
-                                                     api_key=api_key):
-                # print(partial)
-                response += partial.text
-            return response
+        # ssh -L 9000:api.poe.com:443 feikong@172.18.20.193
+        # ssh -N -R 9000:api.poe.com:443 kongfei@172.22.162.34
+        # ssh -D 1080 feikong@172.18.20.193
+        
+        response_json = requests.post(
+            'http://172.18.20.193:5001/get_responses',
+            json={'api_key': api_key, 'messages': messages}
+        )
 
-        response = asyncio.run(get_responses(api_key=api_key, messages=messages))
+        print("# response:", response_json.json())
+        response = response_json.json()['response']
+        # print(result['response'])
+        
         # logging.info(f'response:{response}')
 
-
-    if api_type == 'gpt' :
+    if api_type == 'gpt':
         # 配置 OpenAI API
         client = OpenAI(api_key=api_key, base_url="https://api.chatanywhere.tech/v1")
         response = client.chat.completions.create(
@@ -219,13 +220,15 @@ def generate_new_structure_using_llm(api_type):
                 temperature = 0.9,
             )
 
+    # 获取响应内容 
+    if api_type != 'Poe':
+        new_structure = response.choices[0].message.content
+    else:
+        new_structure = response
 
     # logging.info(f'# response:{response}')
     # print(f'# response:{response}')
-    # 获取响应内容
-    new_structure = response.choices[0].message.content
-    
-    
+
     # 去除 ```yaml 和 ```
     cleaned_new_yaml = new_structure.strip("```yaml").strip("```")
 
