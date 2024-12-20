@@ -76,6 +76,8 @@ def num_percent(percent, coco_dir):
             cat_name = cat["name"]
             print(f"{cat_name}: {new_category_count[cat_id]} 个标注")
 
+if __name__ == '__main__':
+    num_percent(1)
 
 if __name__ == '__main__':
     num_percent(1)
@@ -83,9 +85,9 @@ if __name__ == '__main__':
 
 '''
 2024.12.19
-抽取完成！新的标注文件保存在: /xmnt/mnt_nfs_qynas_v4/kongfei/data/coco/annotations/instances_train2017_5percent.json
+抽取完成！新的标注文件保存在: {coco_dir}/annotations/instances_train2017_5percent.json
 图像数量: 31960，标注数量: 42958
-图像路径已保存到: /xmnt/mnt_nfs_qynas_v4/kongfei/data/coco/train2017_5percent.txt
+图像路径已保存到: {coco_dir}/train2017_5percent.txt
 person: 13123 个标注
 bicycle: 355 个标注
 car: 2193 个标注
@@ -172,9 +174,9 @@ toothbrush: 97 个标注
 
 '''
 2024.12.18
-抽取完成！新的标注文件保存在: /xmnt/mnt_nfs_qynas_v4/kongfei/data/coco/annotations/instances_train2017_1percent.json
+抽取完成！新的标注文件保存在: {coco_dir}/annotations/instances_train2017_1percent.json
 图像数量: 7971，标注数量: 8559
-图像路径已保存到: /xmnt/mnt_nfs_qynas_v4/kongfei/data/coco/train2017_1percent.txt
+图像路径已保存到: {coco_dir}/train2017_1percent.txt
 person: 2624 个标注
 bicycle: 71 个标注
 car: 438 个标注

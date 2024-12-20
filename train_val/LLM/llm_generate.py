@@ -4,7 +4,6 @@ import re
 import time
 import logging
 import asyncio
-import requests
 import fastapi_poe as fp
 
 # YAML 内容作为多行字符串
