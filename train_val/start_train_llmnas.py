@@ -27,7 +27,7 @@ def clear_gpu_memory():
 percent = '5'
 coco_dir = '/mnt/data7T/kongfeidata/data/coco' # a03
 
-total_iterations = 15  # 假设我们循环5次
+total_iterations = 20  # 假设我们循环5次
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他,qwen
 task_name_template = 'yolov8puls'  # 任务名称的模板
 

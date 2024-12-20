@@ -67,4 +67,4 @@ def plot_results(file="path/to/results.csv", dir="", segment=False, pose=False, 
         on_plot(fname)
         
      
-plot_results('/home/kongfei/code/yolov10/runs/detect/yolov8puls10/results.csv')
+plot_results('/home/kongfei/code/yolov10/runs/detect/yolov8n2/results.csv')

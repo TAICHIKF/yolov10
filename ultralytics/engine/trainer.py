@@ -601,55 +601,6 @@ class BaseTrainer:
         """Plots training labels for YOLO model."""
         pass
 
-    # def save_metrics(self, metrics):
-    #     """Saves training metrics to a CSV file."""
-    #     keys, vals = list(metrics.keys()), list(metrics.values())
-    #     n = len(metrics) + 1  # number of cols
-    #     s = "" if self.csv.exists() else (("%23s," * n % tuple(["epoch"] + keys)).rstrip(",") + "\n")  # header
-    #     with open(self.csv, "a") as f:
-    #         f.write(s + ("%23.5g," * n % tuple([self.epoch + 1] + vals)).rstrip(",") + "\n")
-
-    # def save_metrics(self, metrics):
-    #     """Saves training metrics to a CSV file with a timestamp."""
-    #     # 获取当前时间并格式化为 "年-月-日 小时:分钟"
-    #     current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-    #     # 提取字典的键和值
-    #     keys, vals = list(metrics.keys()), list(metrics.values())
-    #     # 计算列数，新增时间列
-    #     n = len(metrics) + 2  # 增加2列：时间和epoch
-    #     # 构建 CSV 文件的表头，如果文件不存在则添加表头
-    #     s = "" if self.csv.exists() else (("%23s," * n % tuple(["time", "epoch"] + keys)).rstrip(",") + "\n")
-    #     # 打开文件并写入时间、epoch 和指标值
-    #     with open(self.csv, "a") as f:
-    #         f.write(s + ("%23s," + "%23.5g," * (n - 1)) % tuple([current_time, self.epoch + 1] + vals) + "\n")
-    
-    # def save_metrics(self, metrics):
-    #     """Saves training metrics to a CSV file with a timestamp."""
-    #     # 获取当前时间并格式化为 "年-月-日 小时:分钟" 转换为整数形式
-    #     current_time = int(datetime.now().strftime("%Y%m%d%H%M"))
-
-    #     # 提取字典的键和值
-    #     keys, vals = list(metrics.keys()), list(metrics.values())
-
-    #     # 计算列数，新增2列：time和epoch
-    #     n = len(metrics) + 2  # 增加2列：time和epoch
-
-    #     # 如果文件不存在，则创建并写入表头
-    #     header_exists = os.path.exists(self.csv)
-    #     if not header_exists:
-    #         header = "%23.5g," + "%23.5g," * (n - 2) + "%23d,"  # 将 time 放到最后一列
-    #         header = header.rstrip(",")  # 去掉最后一个逗号
-    #         header = header + "\n"
-    #         with open(self.csv, "a") as f:
-    #             # 写入文件头，time放在最后
-    #             f.write(header % tuple(["epoch"] + keys + ["time"]))
-
-    #     # 打开文件并写入时间、epoch 和指标值
-    #     with open(self.csv, "a") as f:
-    #         # 格式化字符串：epoch在前，time放在最后
-    #         row = "%23.5g," * (n - 2) + "%23.5g," + "%23d,"
-    #         f.write(row % tuple([self.epoch + 1] + vals + [current_time]) + "\n")
-            
     def save_metrics(self, metrics):
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
         # current_time = int(datetime.now().strftime("%Y%m%d%H%M"))
