@@ -4,77 +4,81 @@ import os
 from collections import defaultdict
 
 
-percent = 5
+def num_percent(percent, coco_dir):
+    
+    output_txt = f"{coco_dir}/train2017_{percent}percent.txt"                    # 输出的图像路径txt文件
+    if os.path.exists(output_txt):
+        print(f'# 已经生成了{output_txt}, 直接跳过！')
+    else:
+        # 设置路径
+        coco_json = f"{coco_dir}/annotations_trainval2017/annotations/instances_train2017.json"  # COCO标注文件路径
+        output_json = f"{coco_dir}/annotations/instances_train2017_{percent}percent.json"         # 抽取后保存的标注文件
 
-# 设置路径
-coco_json = "/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco/annotations_trainval2017/annotations/instances_train2017.json"  # COCO标注文件路径
-output_json = f"/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco/annotations/instances_train2017_{percent}percent.json"         # 抽取后保存的标注文件
-output_txt = f"/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco/train2017_{percent}percent.txt"                    # 输出的图像路径txt文件
+        # 图像原路径
+        # images_dir = "{coco_dir}/images/train2017"
 
-# 图像原路径
-# images_dir = "/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco/images/train2017"
+        # 加载 COCO 标注文件
+        with open(coco_json, "r") as f:
+            coco_data = json.load(f)
 
-# 加载 COCO 标注文件
-with open(coco_json, "r") as f:
-    coco_data = json.load(f)
+        # 解析标注信息
+        images = coco_data["images"]        # 图像信息
+        annotations = coco_data["annotations"]  # 标注信息
+        categories = coco_data["categories"]    # 类别信息
 
-# 解析标注信息
-images = coco_data["images"]        # 图像信息
-annotations = coco_data["annotations"]  # 标注信息
-categories = coco_data["categories"]    # 类别信息
+        # 统计每个类别的标注
+        category_to_annotations = defaultdict(list)
+        for ann in annotations:
+            category_to_annotations[ann["category_id"]].append(ann)
 
-# 统计每个类别的标注
-category_to_annotations = defaultdict(list)
-for ann in annotations:
-    category_to_annotations[ann["category_id"]].append(ann)
+        # 抽取每个类别1%的数据
+        selected_annotations = []
+        for cat_id, anns in category_to_annotations.items():
+            num_to_select = max(1, int(len(anns) * 0.01 * int(percent)))  # 至少选取1个
+            selected_annotations.extend(random.sample(anns, num_to_select))
 
-# 抽取每个类别1%的数据
-selected_annotations = []
-for cat_id, anns in category_to_annotations.items():
-    num_to_select = max(1, int(len(anns) * 0.01 * percent))  # 至少选取1个
-    selected_annotations.extend(random.sample(anns, num_to_select))
+        # 获取抽取到的图像ID，确保唯一性
+        selected_image_ids = set(ann["image_id"] for ann in selected_annotations)
 
-# 获取抽取到的图像ID，确保唯一性
-selected_image_ids = set(ann["image_id"] for ann in selected_annotations)
+        # 抽取对应的图像信息
+        selected_images = [img for img in images if img["id"] in selected_image_ids]
 
-# 抽取对应的图像信息
-selected_images = [img for img in images if img["id"] in selected_image_ids]
+        # 保存新的标注文件
+        new_coco_data = {
+            "images": selected_images,
+            "annotations": selected_annotations,
+            "categories": categories
+        }
 
-# 保存新的标注文件
-new_coco_data = {
-    "images": selected_images,
-    "annotations": selected_annotations,
-    "categories": categories
-}
+        with open(output_json, "w") as f:
+            json.dump(new_coco_data, f, indent=4)
 
-with open(output_json, "w") as f:
-    json.dump(new_coco_data, f, indent=4)
+        print(f"抽取完成！新的标注文件保存在: {output_json}")
+        print(f"图像数量: {len(selected_images)}，标注数量: {len(selected_annotations)}")
 
-print(f"抽取完成！新的标注文件保存在: {output_json}")
-print(f"图像数量: {len(selected_images)}，标注数量: {len(selected_annotations)}")
+        # 保存图像路径到txt文件
+        with open(output_txt, "w") as f:
+            for img in selected_images:
+                # img_path = os.path.join(images_dir, img["file_name"])
+                img_path = f"./images/train2017/{img['file_name']}"  # 相对路径
+                f.write(img_path + "\n")
 
-# 保存图像路径到txt文件
-with open(output_txt, "w") as f:
-    for img in selected_images:
-        # img_path = os.path.join(images_dir, img["file_name"])
-        img_path = f"./images/train2017/{img['file_name']}"  # 相对路径
-        f.write(img_path + "\n")
+        print(f"图像路径已保存到: {output_txt}")
 
-print(f"图像路径已保存到: {output_txt}")
+        # 统计新数据集中每个类别的标注数量
+        new_category_count = defaultdict(int)
+        for ann in selected_annotations:
+            new_category_count[ann["category_id"]] += 1
 
-# 统计新数据集中每个类别的标注数量
-new_category_count = defaultdict(int)
-for ann in selected_annotations:
-    new_category_count[ann["category_id"]] += 1
-
-# 输出统计信息
-for cat in categories:
-    cat_id = cat["id"]
-    cat_name = cat["name"]
-    print(f"{cat_name}: {new_category_count[cat_id]} 个标注")
+        # 输出统计信息
+        for cat in categories:
+            cat_id = cat["id"]
+            cat_name = cat["name"]
+            print(f"{cat_name}: {new_category_count[cat_id]} 个标注")
 
 
-
+if __name__ == '__main__':
+    num_percent(1)
 
 
 '''

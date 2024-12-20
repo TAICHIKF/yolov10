@@ -226,11 +226,23 @@ def generate_new_structure_using_llm(api_type):
     else:
         new_structure = response
 
-    # logging.info(f'# response:{response}')
-    # print(f'# response:{response}')
-
     # 去除 ```yaml 和 ```
     cleaned_new_yaml = new_structure.strip("```yaml").strip("```")
 
-    
     return cleaned_new_yaml
+    
+    # #去除 ```yaml 和 ```
+    # # cleaned_new_yaml = new_structure.strip("```yaml").strip("```")
+
+    # # Extract content between ```yaml and ```
+    # # pattern = r"```yaml\s*(.*?)```"
+    # pattern = r"```(?:yaml\s*)?([\s\S]*?)```"
+    # content = re.search(pattern, new_structure, re.DOTALL)
+    
+    # if content:
+    #     cleaned_new_yaml = content.group(1)
+    #     print(cleaned_new_yaml)  # This will print the content between ```yaml and ```
+    #     return cleaned_new_yaml
+    # else:
+    #     print("No content found")
+    #     return new_structure
