@@ -10,12 +10,10 @@
 # import time
 from ultralytics import YOLO
 
-model_name = 'yolov8n'
-model = YOLO(f'{model_name}.yaml')
-model.train(data='./llmv8/coco_5percent.yaml', epochs=1500, imgsz=640, batch=128, device=[4,5,6,7], name=model_name, cache=True, plots=True)
+model_name = 'yolov8plus3'
+model = YOLO(f'./llmv8/{model_name}.yaml')
+model.train(data='./llmv8/data/coco.yaml', epochs=1500, imgsz=640, batch=256, device=[0,1,2,3], name=model_name, cache=True, plots=True)
 # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
-# model.train(data="coco8.yaml", epochs=100, imgsz=640)
-        
 
 
 """

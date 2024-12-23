@@ -4,7 +4,23 @@ import re
 import time
 import logging
 import asyncio
+import requests
 import fastapi_poe as fp
+
+
+def clean_markdown_yaml(raw_text):
+        """
+        清理带有 Markdown 标记的 YAML 文本
+        """
+        # 定义正则表达式，提取 ```yaml ... ``` 或 ``` ... ``` 中的内容
+        pattern = r"```(?:yaml)?\n(.*?)```"  # 支持 `yaml` 和无标签的 Markdown
+        match = re.search(pattern, raw_text, re.DOTALL)  # DOTALL 允许匹配多行内容
+        if match:
+            # 返回提取的 YAML 内容，并移除首尾空白符
+            return match.group(1).strip()
+        else:
+            raise ValueError("No valid YAML content found in the input text")
+
 
 # YAML 内容作为多行字符串
 yolov8_config_yaml = """
@@ -226,7 +242,9 @@ def generate_new_structure_using_llm(api_type):
         new_structure = response
 
     # 去除 ```yaml 和 ```
-    cleaned_new_yaml = new_structure.strip("```yaml").strip("```")
+    # cleaned_new_yaml = new_structure.strip("```yaml").strip("```")
+    cleaned_new_yaml = clean_markdown_yaml(new_structure)
+
 
     return cleaned_new_yaml
     

@@ -78,10 +78,7 @@ def num_percent(percent, coco_dir):
 
 if __name__ == '__main__':
     num_percent(1)
-
-if __name__ == '__main__':
-    num_percent(1)
-
+    
 
 '''
 2024.12.19
