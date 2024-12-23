@@ -12,6 +12,15 @@ ssh -T git@github.com
 git clone git@github.com:TAICHIKF/ZenNAS_2024.git
 
 
+---
+merge:
+git status
+git fetch origin
+git log HEAD..origin/main
+git config pull.rebase false
+git pull origin main
+
+
 conda create -n yolo python=3.9 -y
 conda activate yolo
 pip install -r requirements.txt
