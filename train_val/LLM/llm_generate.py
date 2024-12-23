@@ -2,8 +2,9 @@ from openai import OpenAI
 from zhipuai import ZhipuAI
 import re
 import time
-import requests
-# import fastapi_poe as fp
+import logging
+import asyncio
+import fastapi_poe as fp
 
 # YAML 内容作为多行字符串
 yolov8_config_yaml = """

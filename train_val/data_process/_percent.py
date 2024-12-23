@@ -76,10 +76,11 @@ def num_percent(percent, coco_dir):
             cat_name = cat["name"]
             print(f"{cat_name}: {new_category_count[cat_id]} 个标注")
 
-
 if __name__ == '__main__':
     num_percent(1)
 
+if __name__ == '__main__':
+    num_percent(1)
 
 
 '''
