@@ -2,10 +2,7 @@ from openai import OpenAI
 from zhipuai import ZhipuAI
 import re
 import time
-# import logging
-# import asyncio
 import requests
-# import fastapi_poe as fp
 
 
 def clean_markdown_yaml(raw_text):
@@ -69,40 +66,6 @@ head:
 
 modules = "['Classify','Conv','ConvTranspose','GhostConv','Bottleneck','GhostBottleneck','SPP','SPPF','C2fPSA','C2PSA','DWConv','Focus','BottleneckCSP','C1,'C2','C2f','C3k2','RepNCSPELAN4','ELAN1','ADown','AConv','SPPELAN','C2fAttn','C3,'C3TR','C3Ghost','nn.ConvTranspose2d','DWConvTranspose2d','C3x','RepC3','PSA','SCDown','C2fCIB']"
 
-# modules_example = '''
-# # A specific example of the use of modules:
-
-# - [-1, 1, DFL, [16]]
-# - [-1, 1, HGBlock, [64, 128, 256, 3, 6, False, True]]
-# - [-1, 1, HGStem, [64, 128, 256]]
-# - [-1, 1, SPP, [256, 512, [5, 9, 13]]]
-# - [-1, 1, SPPF, [512, 1024, 5]]
-# - [-1, 1, C1, [128, 256, 1]]
-# - [-1, 3, C2, [256, 512, 3, True, 1, 0.5]]
-# - [-1, 3, C3, [512, 1024, 3, True, 1, 0.5]]
-# - [-1, 2, C2f, [256, 512, 2, False, 1, 0.5]]
-# - [-1, 2, C2fAttn, [256, 512, 2, 128, 1, 512, False, 1, 0.5]]
-# - [-1, 1, ImagePoolingAttn, [256, [64, 128], 512, 8, 3, False]]
-# - [-1, 1, ContrastiveHead, []]
-# - [-1, 1, BNContrastiveHead, [256]]
-# - [-1, 3, C3x, [512, 1024, 3, True, 1, 0.5]]
-# - [-1, 3, C3TR, [512, 1024, 3, True, 1, 0.5]]
-# - [-1, 3, C3Ghost, [512, 1024, 3, True, 1, 0.5]]
-# - [-1, 1, GhostBottleneck, [256, 256, 3, 1]]
-# - [-1, 3, Bottleneck, [256, 512, True, 1, [3, 3], 0.5]]
-# - [-1, 3, BottleneckCSP, [256, 512, 3, True, 1, 0.5]]
-# - [-1, 1, Proto, [512, 256, 32]]
-# - [-1, 3, RepC3, [256, 512, 3, 1.0]]
-# - [-1, 2, ResNetLayer, [64, 128, 1, True, 2, 4]]
-# - [-1, 1, RepNCSPELAN4, [256, 512, 256, 128, 1]]
-# - [-1, 1, ADown, [512, 256]]
-# - [-1, 1, SPPELAN, [256, 512, 256, 5]]
-# - [-1, 1, CBFuse, [[0, 1, 2]]]
-# - [-1, 2, CBLinear, [512, [256, 256], 1, 1, None, 1]]
-# - [-1, 1, Silence, []]
-# '''
-
-
 system_content = "You are Quoc V. Le, a computer scientist and artificial intelligence researcher who is widely regarded as one of the leading experts in deep learning and neural network architecture search. Your work in this area has focused on developing efficient algorithms for searching the space of possible neural network architectures, with the goal of finding architectures that perform well on a given task while minimizing the computational cost of training and inference."
 
 # user_input = f'''You need to analyze where yolov11 is better than yolov8, and then understand and improve on the basis of yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}, The configuration file for yolov11 is{yolov11_config_yaml}'''
@@ -112,20 +75,30 @@ user_input = f'''You need to analyze yolov8 to make the newly generated configur
 
 suffix = '''Please do not include anything else other than configuration in your response!'''
 
-def generate_new_structure_using_llm(api_type):
+
+def generate_new_structure_using_llm(api_type, max_score_list, max_score_yaml_list):
     
     # prompt_cn = '根据现有配置，生成一个新的优化后的配置，优化目标：参数量不增加或参数量减少情况下提升目标检测性能。具体的module顺序你可以更改，channel数值也可以变化。总之，你可以根据自己的理解生成新结构，结果比原有配置性能更优就可以。'
     prompt = f'''Generate a new optimized configuration based on the existing configuration.
              Optimization goal: Improve target detection performance when the number of parameters does not increase or decreases. 
              You can change the specific module order, and the channel value can also change. Sizes of tensors must match except in dimension 1.
              In short, you can generate a new structure according to your own understanding, and the result is better than the original configuration.'''
-            #  However, modules can only be types in {modules} and cannot be generated randomly.
+    
+    if len(max_score_list) > 0:
+        experiments_prompt = lambda max_score_yaml_list, max_score_list : '''Here are some structure's score results that you can use as a reference:
+        {}
+        Please suggest a better structure that can improve the structure's score results provided above. '''.format(''.join(['{} gives a score of {:.4f}\n'.format(best_structure, max_score) for best_structure, max_score in zip(max_score_yaml_list, max_score_list)]))
              
-             
-    messages = [
-            {"role": "system", "content": system_content},
-            {"role": "user", "content": user_input + prompt + suffix},
-        ] 
+        messages = [
+                {"role": "system", "content": system_content},
+                {"role": "user", "content": user_input + prompt + experiments_prompt(max_score_yaml_list, max_score_list) + suffix}] 
+        print("# experiments_prompt: \n ", experiments_prompt(max_score_yaml_list, max_score_list))
+        
+    else:
+        messages = [
+                {"role": "system", "content": system_content},
+                {"role": "user", "content": user_input + prompt + suffix}] 
+        
 
     if api_type == 'Poe':
         api_key = 'EUPOLRTFOHyyNRhjjEiRlRUMRjfFd0_bPZ2N4PE8PNE'
@@ -156,11 +129,8 @@ def generate_new_structure_using_llm(api_type):
             json={'api_key': api_key, 'messages': messages}
         )
 
-        print("# response:", response_json.json())
+        # print("# response:", response_json.json())
         response = response_json.json()['response']
-        # print(result['response'])
-        
-        # logging.info(f'response:{response}')
 
     if api_type == 'gpt':
         # 配置 OpenAI API

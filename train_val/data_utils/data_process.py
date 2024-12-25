@@ -114,7 +114,7 @@ def get_max(file_path):
         print(f"列 '{column_name}' 不存在，请检查列名是否正确。")
 
 
-def save_model_info(task_name, file_path, summary_info):
+def save_model_info(task_name, file_path, summary_info, zen_score):
     
     yolov8n_info = '#     YOLOv8n summary: 225 layers, 3,157,200 parameters, 3,157,184 gradients,  8.9 GFLOPs'
     # Unpack the tuple into individual variables
@@ -124,7 +124,8 @@ def save_model_info(task_name, file_path, summary_info):
         f"#{task_name} summary: {layers} layers, "
         f"{parameters:,} parameters, "
         f"{gradients:,} gradients, "
-        f"{gflops:.1f} GFLOPs"
+        f"{gflops:.1f} GFLOPs, "
+        f"{zen_score} Score"
     )
 
     # 读取现有的 YAML 文件内容
@@ -141,3 +142,5 @@ def save_model_info(task_name, file_path, summary_info):
     # 将合并后的内容写回文件
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write(new_content)
+
+    return content

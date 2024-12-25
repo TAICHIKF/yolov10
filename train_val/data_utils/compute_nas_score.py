@@ -2,7 +2,7 @@
 python ./train_val/data_utils/compute_nas_score.py --batch_size 16 --input_image_size 640 --repeat_times 32 --gpu 0 --mixup_gamma 0.01
 '''
 
-import os, sys
+import sys
 import torch
 from torch import nn
 import numpy as np
@@ -11,6 +11,7 @@ from ultralytics import YOLO  # Import the YOLO model
 
 # No need to import Detect if using class name checking
 # from ultralytics.nn.modules.head import Detect
+
 
 def network_weight_gaussian_init(net: nn.Module):
     with torch.no_grad():
@@ -131,6 +132,7 @@ def compute_nas_score_yolov8(gpu, model, mixup_gamma=0.01, resolution=640, batch
     info['avg_nas_score'] = float(avg_nas_score)
     info['std_nas_score'] = float(std_nas_score)
     info['avg_precision'] = float(avg_precision)
+    
     return info
 
 
@@ -149,10 +151,10 @@ if __name__ == "__main__":
 
     # Load YOLOv8 model
     yolo_model = YOLO('yolov8n.pt') # 96.03
-    # yolo_model = YOLO('yolov8s.pt') # 98.80
-    # yolo_model = YOLO('yolov8m.pt')  # 147.72
+    # yolo_model = YOLO('yolov8s.pt') # 98.81
+    # yolo_model = YOLO('yolov8m.pt')  # 147.7
     # yolo_model = YOLO('yolov8l.pt') # 209.1
-    # yolo_model = YOLO('yolov8x.pt')
+    # yolo_model = YOLO('yolov8x.pt') # 203.5
     model = yolo_model.model  # Extract the core model
 
     if args.gpu is not None:

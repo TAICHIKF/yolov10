@@ -58,33 +58,37 @@ def save_model_info(task_name, file_path, summary_info):
         
 if __name__ == '__main__':
     task_name_template = 'yolov8plus'  # 任务名称的模板
-    gpu=5
-    zen_score_list = []
-    for i in range(1, 10):
-        # 动态生成 task_name 和文件路径
-        task_name = f'{task_name_template}{i}'  # 生成 task_name：yolov8puls1, yolov8puls2, ...
-        # 动态生成文件路径，包括今天的日期
-        dir_path = f"./llmv8/Poe_25_20241223"
-        file_path = os.path.join(dir_path, f"{task_name}.yaml")   
-        
-        task_name = 'yolov8n' # 7.844
-        # task_name = 'yolov8s' #  7.967[7.894953086972237, 8.074837878346443, 8.06353472173214, 7.763306260108948, 7.746582180261612, 7.930160015821457, 7.916775241494179, 7.853617012500763, 7.992964521050453] 7.915192324254248
-        # task_name = 'yolov8m' #  9.106
-        # task_name = 'yolov8l' # 10.29
-        # task_name = 'yolov8x' # 10.44, 10.24, 10.36
-        model = YOLO(f'{task_name}.yaml')
-        # model = YOLO(file_path)
-        # model.info(detailed=True, verbose=True)
-        start_timer = time.time()
-        info = compute_nas_score_yolov8(gpu=gpu, model=model.model.cuda(gpu), repeat=64)
-        time_cost = (time.time() - start_timer) / 64
-        zen_score = info['avg_nas_score']
-        zen_score_list.append(f'{zen_score:.4g}')
-        # print(info)
-        print(f'zen-score={zen_score:.4g}, time cost={time_cost:.4g} second(s)')
-        
-                    
-        del model  # Delete model instance after each iteration
-        clear_gpu_memory()  # Clear memory
-    average_score = sum(zen_score_list) / len(zen_score_list)
-    print(zen_score_list, average_score)
+    gpu=0
+  
+    for i in range(1, 2):
+        zen_score_list = []
+        for j in range(0,20):
+            # 动态生成 task_name 和文件路径
+            # 动态生成文件路径，包括今天的日期
+            # dir_path = f"./llmv8/Poe_50_20241225"
+            # task_name = f'{task_name_template}{i}'  # 生成 task_name：yolov8puls1, yolov8puls2, ...
+            # file_path = os.path.join(dir_path, f"{task_name}.yaml")   
+            # model = YOLO(file_path)
+            
+            # task_name = 'yolov8n' # yolov8n:7.854-[7.921, 7.856, 7.817, 7.768, 7.857, 7.935, 7.886, 8.008, 7.954, 7.924, 7.9, 7.745, 7.866, 8.089, 7.638, 7.68, 7.741, 7.963, 7.804, 7.728]
+            task_name = 'yolov8s' # yolov8s:7.833-[7.73, 7.796, 7.788, 7.878, 7.758, 8.041, 7.888, 7.946, 7.763, 7.782, 7.774, 7.766, 7.886, 7.824, 7.888, 7.765, 7.826, 7.954, 7.738, 7.879]
+            # task_name = 'yolov8m' #  yolov8m:9.114-[9.141, 9.258, 8.963, 9.078, 9.185, 9.101, 9.174, 9.044, 9.172, 9.154, 9.185, 9.115, 9.209, 9.092, 9.125, 9.135, 8.906, 9.103, 9.134, 9.003]
+            # task_name = 'yolov8l' # yolov8l:10.32-[10.31, 10.39, 10.37, 10.37, 10.26, 10.36, 10.35, 10.37, 10.28, 10.28, 10.27, 10.36, 10.28, 10.26, 10.35, 10.32, 10.25, 10.32, 10.29, 10.3]
+            # task_name = 'yolov8x' # yolov8x:10.35-[10.33, 10.32, 10.38, 10.3, 10.4, 10.36, 10.27, 10.3, 10.38, 10.38, 10.38, 10.37, 10.25, 10.32, 10.4, 10.31, 10.43, 10.37, 10.37, 10.33]
+            model = YOLO(f'{task_name}.yaml')
+
+            # model.info(detailed=True, verbose=True)
+            start_timer = time.time()
+            info = compute_nas_score_yolov8(gpu=gpu, model=model.model.cuda(gpu), repeat=32)
+            time_cost = (time.time() - start_timer) / 32
+            zen_score = info['avg_nas_score']
+            zen_score_list.append(float(f'{zen_score:.4g}'))
+            # print(info)
+            # print(f'zen-score={zen_score:.4g}, time cost={time_cost:.4g} second(s)')
+
+
+            del model  # Delete model instance after each iteration
+            clear_gpu_memory()  # Clear memory
+        # zen_score_list = [float(score) for score in zen_score_list]
+        average_score = sum(zen_score_list) / len(zen_score_list)
+        print(f'{task_name}:{average_score:.4g}-{zen_score_list}')
