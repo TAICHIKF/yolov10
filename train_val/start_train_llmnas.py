@@ -10,6 +10,7 @@ yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=6
 import os
 import yaml
 import json
+import shutil
 from datetime import datetime
 from ultralytics import YOLO
 from LLM.llm_generate import generate_new_structure_using_llm
@@ -24,7 +25,7 @@ api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
 
 total_iterations = 10  # 假设我们循环5次
 task_name_template = 'yolov8plus'  # 任务名称的模板
-coco_data = './train_val/cfg/data/coco.yaml'
+coco_data = './train_val/cfg_llm/data/coco.yaml'
 coco_dir = '/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco' # u404
 
 #-----------------------------------------------------------------
@@ -67,7 +68,7 @@ else:
     best_task_name_list = []
     best_new_yaml_list= []
     
-    dir_path = f"./train_val/cfg/model/{api_type}_{total_iterations}"
+    dir_path = f"./train_val/cfg_llm/model/{api_type}_{total_iterations}"
     # 确保文件所在的目录存在，如果不存在则创建
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -154,18 +155,30 @@ else:
     # print("# best_task_name_list:", best_task_name_list)        
     # best_task_name = best_task_name_list[-1]
     save_dir=fr'./runs/detect/llmnas_yolov8/{best_task_name}'
-    if not os.path.exists(save_dir):
+    if os.path.exists(save_dir):
+        # 如果 save_dir 存在，并且其中没有 results.png 文件
+        if not os.path.exists(os.path.join(save_dir, 'results.png')):
+            # 删除现有的 save_dir 目录
+            shutil.rmtree(save_dir)
+            print(f"目录 {save_dir} 已删除")
+            
+            # 重新创建 save_dir
+            os.makedirs(save_dir)
+            print(f"目录 {save_dir} 已重新创建")
+    else:
+        # 如果 save_dir 不存在，直接创建
         os.makedirs(save_dir)
-        print(f"目录已创建: {save_dir}")
-        
+        print(f"目录 {save_dir} 已创建")
+    
     if os.path.exists(fr'{save_dir}/results.png'):
         print(f"已经训练过，跳过操作: {best_task_name}")
+        
     else:              
         best_file_path = os.path.join(dir_path, f"{best_task_name}.yaml")        
         print("# best_file_path:", best_file_path)    
         
         model = YOLO(best_file_path, verbose=False)
-        model.train(data=coco_data, epochs=1500, imgsz=640, batch=256, device=[3,4,5,7], project='llmnas_yolov8', name=best_task_name, cache=True, plots=True)
+        model.train(data=coco_data, epochs=1000, imgsz=640, batch=256, device=[4,5,6,7], project='llmnas_yolov8', name=best_task_name, cache=True, plots=True)
         # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
 
         get_max(fr'{save_dir}/results.csv')
