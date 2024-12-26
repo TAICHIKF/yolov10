@@ -16,17 +16,20 @@ from LLM.llm_generate import generate_new_structure_using_llm
 from data_utils.compute_nas_score import compute_nas_score_yolov8
 from data_utils.data_process import num_percent, save_model_info, get_max, clear_gpu_memory
 
+#-----------------------------------------------------------------
 
 yolov8_model = 0 # True
-percent = '10'
+percent = '1'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
 
 
-total_iterations = 5  # 假设我们循环5次
+total_iterations = 10  # 假设我们循环5次
 task_name_template = 'yolov8plus'  # 任务名称的模板
-coco_data = './llmv8/data/coco.yaml'
+coco_data = './train_val/cfg/data/coco.yaml'
 coco_dir = '/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco' # u404
 
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
 
 # 根据条件修改配置
 if percent=='100':
@@ -65,7 +68,7 @@ else:
     best_task_name_list = []
     best_new_yaml_list= []
     
-    dir_path = f"./llmv8/{api_type}_{total_iterations}"
+    dir_path = f"./train_val/cfg/model/{api_type}_{total_iterations}"
     # 确保文件所在的目录存在，如果不存在则创建
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -151,16 +154,19 @@ else:
                 
     # print("# best_task_name_list:", best_task_name_list)        
     # best_task_name = best_task_name_list[-1]
-    save_dir=fr'.\runs\detect\{best_task_name}'
-    if os.path.exists(fr'{save_dir}\results.png'):
+    save_dir=fr'./runs/detect/llmnas/{best_task_name}'
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+        print(f"目录已创建: {save_dir}")
+    if os.path.exists(fr'{save_dir}/results.png'):
         print(f"已经训练过，跳过操作: {best_task_name}")
                   
     best_file_path = os.path.join(dir_path, f"{best_task_name}.yaml")        
-    model = YOLO(file_path, verbose=True)
-    model.train(data=coco_data, epochs=2, imgsz=640, batch=128, device=[1,3,4,5], name=best_task_name, cache=True, plots=True)
+    model = YOLO(file_path, verbose=False)
+    model.train(data=coco_data, epochs=2, imgsz=640, batch=64, device=[1], project='llmnas_yolov8', name=best_task_name, cache=True, plots=True)
     # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
 
-    get_max(fr'{save_dir}\results.csv')
+    get_max(fr'{save_dir}/results.csv')
     print(f"训练完成: {best_task_name}")
 
 

@@ -87,7 +87,7 @@ def generate_new_structure_using_llm(api_type, max_score_list, max_score_yaml_li
     if len(max_score_list) > 0:
         experiments_prompt = lambda max_score_yaml_list, max_score_list : '''Here are some structure's score results that you can use as a reference:
         {}
-        Please suggest a better structure that can improve the structure's score results provided above. '''.format(''.join(['{} gives a score of {:.4f}\n'.format(best_structure, max_score) for best_structure, max_score in zip(max_score_yaml_list, max_score_list)]))
+        Please suggest a better structure that can improve the structure's score results provided above. '''.format(''.join(['{} gives a score of {:.4f}\n\n'.format(best_structure, max_score) for best_structure, max_score in zip(max_score_yaml_list, max_score_list)]))
              
         messages = [
                 {"role": "system", "content": system_content},
