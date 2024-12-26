@@ -89,5 +89,5 @@ names:
   79: toothbrush
 path: /xmnt/mnt_nfs_qynas_v4/kongfei/data/coco
 test: test-dev2017.txt
-train: train2017_1percent.txt
+train: train2017.txt
 val: val2017.txt
