@@ -3,7 +3,7 @@
 '''
 yolo detect train data=coco.yaml model=yolov10n/s/m/b/l/x.yaml epochs=500 batch=256 imgsz=640 device=0,1,2,3,4,5,6,7
 yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0,1,2,3'
-ps aux | grep /anaconda3/envs/yolo | grep -v grep | awk '{print $2}' | xargs kill -9
+ps aux | grep anaconda3/envs/yolo | grep -v grep | awk '{print $2}' | xargs kill -9
 yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0 resume model=r'D:\code\yolov10\runs\detect\train\weights\last.pt'
 '''
 
@@ -20,10 +20,12 @@ from data_utils.data_process import num_percent, save_model_info, get_max, clear
 #-----------------------------------------------------------------
 
 yolov8_model = 0 # True
+Train_flag = 0 
+
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
 
-total_iterations = 10  # 假设我们循环5次
+total_iterations = 20  # 假设我们循环5次
 task_name_template = 'yolov8plus'  # 任务名称的模板
 coco_data = './train_val/cfg_llm/data/coco.yaml'
 coco_dir = '/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco' # u404
@@ -66,7 +68,8 @@ else:
     max_score = 0
     max_score_list = []
     best_task_name_list = []
-    best_new_yaml_list= []
+    best_new_yaml_list = []
+    best_new_yaml_parameters_list = []
     
     dir_path = f"./train_val/cfg_llm/model/{api_type}_{total_iterations}"
     # 确保文件所在的目录存在，如果不存在则创建
@@ -95,7 +98,7 @@ else:
         else:
             try:
                 # 调用 LLM API 生成新的网络结构
-                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list)
+                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list)
                 # print(f"生成的新结构: {new_structure}")
                 # 将新结构写入 YAML 文件
                 with open(file_path, "w") as file:
@@ -108,7 +111,7 @@ else:
                 print(f"生成时发生错误: {e}")
                 print("重新生成网络结构...")
                 # 如果报错，重新生成结构
-                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list)
+                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list)
                 # 将新结构写入 YAML 文件
                 with open(file_path, "w") as file:
                     file.write(new_structure)
@@ -118,9 +121,10 @@ else:
             summary_info = new_model.info(detailed=False, verbose=True)
             info = compute_nas_score_yolov8(gpu=0, model=new_model.model.cuda(0))
             zen_score = round(float(info['avg_nas_score']), 4)
-            new_yaml_content = save_model_info(task_name, file_path, summary_info, zen_score)
+            new_yaml_content, parameters = save_model_info(task_name, file_path, summary_info, zen_score)
             print(f"# max_score_list: {max_score_list}")
-            print(f"# {task_name}--{zen_score}")
+            print(f"# parameters_list: {best_new_yaml_parameters_list}")
+            print(f"# {task_name}--{zen_score}-{parameters} parameters")
 
            # 保存 task_name 和 zen_score 到字典
             score_dict[task_name] = zen_score
@@ -134,12 +138,14 @@ else:
                 max_score_list.append(max_score)
                 best_task_name_list.append(task_name)
                 best_new_yaml_list.append(new_yaml_content)
+                best_new_yaml_parameters_list.append(parameters)
                     
             # 添加到 best_arch_list 和 max_score_list 时，同时检查是否已经有 10 个元素
-            if len(max_score_list) > 3:
+            if len(max_score_list) > 5:
                 max_score_list.pop(0)  # 删除最前面的元素
                 best_task_name_list.pop(0)
                 best_new_yaml_list.pop(0)  # 删除最前面的元素
+                best_new_yaml_parameters_list.pop(0)  # 删除最前面的元素
             
             del new_model  # Delete model instance after each iteration
             clear_gpu_memory()  # Clear memory
@@ -154,8 +160,10 @@ else:
                 
     # print("# best_task_name_list:", best_task_name_list)        
     # best_task_name = best_task_name_list[-1]
-    save_dir=fr'./runs/detect/llmnas_yolov8/{best_task_name}'
-    if os.path.exists(save_dir):
+    train_task_name = f'{api_type}_{total_iterations}_{best_task_name}'
+    save_dir=fr'./runs/detect/llmnas_yolov8/{train_task_name}'
+    # 检查 save_dir 是否存在
+    if os.path.exists(save_dir) and Train_flag:
         # 如果 save_dir 存在，并且其中没有 results.png 文件
         if not os.path.exists(os.path.join(save_dir, 'results.png')):
             # 删除现有的 save_dir 目录
@@ -172,17 +180,19 @@ else:
     
     if os.path.exists(fr'{save_dir}/results.png'):
         print(f"已经训练过，跳过操作: {best_task_name}")
-        
+    elif not Train_flag:
+         print(f"测试架构生成，暂不执行训练！")
     else:              
-        best_file_path = os.path.join(dir_path, f"{best_task_name}.yaml")        
+        best_file_path = os.path.join(dir_path, f"{best_task_name}.yaml")    
         print("# best_file_path:", best_file_path)    
-        
         model = YOLO(best_file_path, verbose=False)
-        model.train(data=coco_data, epochs=1000, imgsz=640, batch=256, device=[4,5,6,7], project='llmnas_yolov8', name=best_task_name, cache=True, plots=True)
+        model.train(data=coco_data, epochs=1500, imgsz=640, batch=256, device=[4,5,6,7], project='llmnas_yolov8', name=train_task_name, cache=True, plots=True)
         # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
 
         get_max(fr'{save_dir}/results.csv')
         print(f"训练完成: {best_task_name}")
+
+
 
 
 

@@ -71,12 +71,12 @@ system_content = "You are Quoc V. Le, a computer scientist and artificial intell
 # user_input = f'''You need to analyze where yolov11 is better than yolov8, and then understand and improve on the basis of yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}, The configuration file for yolov11 is{yolov11_config_yaml}'''
 user_input = f'''You need to analyze yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}
                  You can modify values in scales, repeats in backbone, channel in module, and channel in head. However, it is important to note that the modified channel values need to match each other.
-                 The methods to keep the number of parameters constant are as follows: 0. Only change the types of some modules, but the number of channels between modules must be strict; 1. Increase the number of layers while reducing the number of channels; 2. Increase the number of channels while reducing the number of layers. In short, the parameters, gradients and GFLOPs of the new configuration should not be increased.'''
+                 The methods to keep the number of parameters constant are as follows: 0. Only change the types of some modules, but the number of channels between modules must be strict; 1. Increase the number of layers while reducing the number of channels; 2. Increase the number of channels while reducing the number of layers. In short, the parameters, gradients and GFLOPs of the new configuration should not be increased. '''
 
 suffix = '''Please do not include anything else other than configuration in your response!'''
 
 
-def generate_new_structure_using_llm(api_type, max_score_list, max_score_yaml_list):
+def generate_new_structure_using_llm(api_type, max_score_list, max_score_yaml_list, best_new_yaml_parameters_list):
     
     # prompt_cn = '根据现有配置，生成一个新的优化后的配置，优化目标：参数量不增加或参数量减少情况下提升目标检测性能。具体的module顺序你可以更改，channel数值也可以变化。总之，你可以根据自己的理解生成新结构，结果比原有配置性能更优就可以。'
     prompt = f'''Generate a new optimized configuration based on the existing configuration.
@@ -85,14 +85,14 @@ def generate_new_structure_using_llm(api_type, max_score_list, max_score_yaml_li
              In short, you can generate a new structure according to your own understanding, and the result is better than the original configuration.'''
     
     if len(max_score_list) > 0:
-        experiments_prompt = lambda max_score_yaml_list, max_score_list : '''Here are some structure's score results that you can use as a reference:
+        experiments_prompt = lambda max_score_yaml_list, max_score_list, best_new_yaml_parameters_list : '''Here are some structure's score results that you can use as a reference:
         {}
-        Please suggest a better structure that can improve the structure's score results provided above. '''.format(''.join(['{} gives a score of {:.4f}\n\n'.format(best_structure, max_score) for best_structure, max_score in zip(max_score_yaml_list, max_score_list)]))
+        Please suggest a better structure that can improve the structure's score results provided above. The parameters of the new configuration should be about 3000000, not more than 3157200.'''.format(''.join(['{} gives a score of {:.4f}, and {} parameters.\n\n'.format(best_structure, max_score, paramter) for best_structure, max_score, paramter in zip(max_score_yaml_list, max_score_list, best_new_yaml_parameters_list)]))
              
         messages = [
                 {"role": "system", "content": system_content},
-                {"role": "user", "content": user_input + prompt + experiments_prompt(max_score_yaml_list, max_score_list) + suffix}] 
-        print("# experiments_prompt: \n ", experiments_prompt(max_score_yaml_list, max_score_list))
+                {"role": "user", "content": user_input + prompt + experiments_prompt(max_score_yaml_list, max_score_list, best_new_yaml_parameters_list) + suffix}] 
+        # print("# experiments_prompt: \n ", experiments_prompt(max_score_yaml_list, max_score_list))
         
     else:
         messages = [
