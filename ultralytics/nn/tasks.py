@@ -954,18 +954,13 @@ def yaml_model_load(path):
     if path.stem in (f"yolov{d}{x}6" for x in "nsmlx" for d in (5, 8)):
         new_stem = re.sub(r"(\d+)([nslmx])6(.+)?$", r"\1\2-p6\3", path.stem)
         LOGGER.warning(f"WARNING ⚠️ Ultralytics YOLO P6 models now use -p6 suffix. Renaming {path.stem} to {new_stem}.")
-        path = path.with_name(new_stem + path.suffix)
-
-    # # 如果文件名包含 yolov8plus，替换为 yolov8-plus
-    if "yolov8plus" in path.stem:
-        new_stem = path.stem.replace("yolov8plus", "yolov8-plus")
-        LOGGER.warning(f"WARNING ⚠️ Found yolov8plus, renaming {path.stem} to {new_stem}.")
-        path    
+        path = path.with_name(new_stem + path.suffix)  
 
     if "v10" not in str(path):
         unified_path = re.sub(r"(\d+)([nsblmx])(.+)?$", r"\1\3", str(path))  # i.e. yolov8x.yaml -> yolov8.yaml
     else:
         unified_path = path
+
     yaml_file = check_yaml(unified_path, hard=False) or check_yaml(path)
     d = yaml_load(yaml_file)  # model dict
     d["scale"] = guess_model_scale(path)
@@ -988,7 +983,8 @@ def guess_model_scale(model_path):
     with contextlib.suppress(AttributeError):
         import re
 
-        return re.search(r"yolov\d+([nsblmx])", Path(model_path).stem).group(1)  # n, s, m, l, or x
+        # return re.search(r"yolov\d+([nsblmx])", Path(model_path).stem).group(1)  # n, s, m, l, or x
+        return re.search(r"yolov\d+(plus\d+)?([nsblmx])", Path(model_path).stem).group(2)
     return ""
 
 
