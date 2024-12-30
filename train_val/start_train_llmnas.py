@@ -20,12 +20,12 @@ from data_utils.data_process import num_percent, save_model_info, get_max, clear
 #-----------------------------------------------------------------
 
 yolov8_model = 0 # True
-Train_flag = 0 
+Train_flag = 1 # 如果测试llm生成架构时，值为0，训练时为1
 
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
 
-total_iterations = 20  # 假设我们循环5次
+total_iterations = 10  # 假设我们循环5次
 task_name_template = 'yolov8plus'  # 任务名称的模板
 coco_data = './train_val/cfg_llm/data/coco.yaml'
 coco_dir = '/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco' # u404
@@ -186,7 +186,7 @@ else:
         best_file_path = os.path.join(dir_path, f"{best_task_name}.yaml")    
         print("# best_file_path:", best_file_path)    
         model = YOLO(best_file_path, verbose=False)
-        model.train(data=coco_data, epochs=1500, imgsz=640, batch=256, device=[4,5,6,7], project='llmnas_yolov8', name=train_task_name, cache=True, plots=True)
+        model.train(data=coco_data, epochs=100, imgsz=640, batch=256, device=[6,7], project='llmnas_yolov8', name=train_task_name, cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/llmnas_yolov8/Poe_10_yolov8plus8/weights/last.pt')
         # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
 
         get_max(fr'{save_dir}/results.csv')

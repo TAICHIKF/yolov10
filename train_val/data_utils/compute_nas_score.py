@@ -17,14 +17,16 @@ def network_weight_gaussian_init(net: nn.Module):
     with torch.no_grad():
         for m in net.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.normal_(m.weight, mean=0.0, std=0.001)  # 减小 std
+                # nn.init.normal_(m.weight, mean=0.0, std=0.001)  # 减小 std
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
                 if hasattr(m, 'bias') and m.bias is not None:
                     nn.init.zeros_(m.bias)
             elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
                 nn.init.ones_(m.weight)
                 nn.init.constant_(m.bias, 0)
                 m.running_mean.zero_()
-                m.running_var.fill_(0.001)  # 减小 running_var
+                # m.running_var.fill_(0.001)  # 减小 running_var
+                m.running_var.fill_(1.0)
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)  # 使用 Xavier 初始化
                 if hasattr(m, 'bias') and m.bias is not None:
@@ -44,6 +46,13 @@ def compute_nas_score_yolov8(gpu, model, mixup_gamma=0.01, resolution=640, batch
 
     # 在循环外初始化模型权重（或不重新初始化）
     # network_weight_gaussian_init(model)
+
+    # 打印权重信息
+    weights = model.state_dict()  # 获取权重
+    # print(f"模型权重文件路径: {yolo_model.ckpt_path}")  # 打印权重路径
+    # print(f"模型权重键名: {weights.keys()}")         # 打印权重键名
+    print(f"模型权重: {weights}") 
+
 
     with torch.no_grad():
         for repeat_count in range(repeat):
@@ -150,13 +159,16 @@ if __name__ == "__main__":
     args = parse_cmd_options(sys.argv)
 
     # Load YOLOv8 model
+    # yolo_model = YOLO('yolov8.yaml') # 
     yolo_model = YOLO('yolov8n.pt') # 96.03
     # yolo_model = YOLO('yolov8s.pt') # 98.81
     # yolo_model = YOLO('yolov8m.pt')  # 147.7
     # yolo_model = YOLO('yolov8l.pt') # 209.1
     # yolo_model = YOLO('yolov8x.pt') # 203.5
     model = yolo_model.model  # Extract the core model
+    
 
+             
     if args.gpu is not None:
         model = model.cuda(args.gpu)
 
