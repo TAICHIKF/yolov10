@@ -13,7 +13,8 @@ import json
 import shutil
 from datetime import datetime
 from ultralytics import YOLO
-from LLM.llm_generate import generate_new_structure_using_llm
+# from LLM.llm_generate import generate_new_structure_using_llm
+from LLM.llm_generate_module import generate_new_structure_using_llm
 from data_utils.compute_nas_score import compute_nas_score_yolov8
 from data_utils.data_process import num_percent, save_model_info, get_max, clear_gpu_memory
 
@@ -26,7 +27,7 @@ scale = 'n' # n s m l x
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
 
-total_iterations = 12  # 假设我们循环5次
+total_iterations = 10  # 假设循环5次
 task_name_template = 'yolov8plus'  # 任务名称的模板
 coco_data = './train_val/cfg_llm/data/coco.yaml'
 coco_dir = '/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco' # a04 - u404
@@ -73,7 +74,7 @@ else:
     best_new_yaml_list = []
     best_new_yaml_parameters_list = []
     
-    dir_path = f"./train_val/cfg_llm/model/{api_type}_{total_iterations}"
+    dir_path = f"./train_val/cfg_llm/model/{api_type}_{today_time}_{total_iterations}"
     # 确保文件所在的目录存在，如果不存在则创建
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -190,7 +191,7 @@ else:
         print("# best_file_path:", best_file_path)    
         model = YOLO(best_file_path, verbose=False)
         model.train(data=coco_data, epochs=1000, imgsz=640, batch=256, device=[4,5], project='llmnas_yolov8', name=f'{train_task_name}{scale}', cache=True, plots=True, 
-                    # resume=True, model='/home/kongfei/code/yolov10/llmnas_yolov8/Poe_10_yolov8plus8/weights/last.pt'
+                    resume=True, model='/home/kongfei/code/yolov10/llmnas_yolov8/Poe_10_yolov8plus8/weights/last.pt'
                     )
         # model.train(data=coco_data, epochs=1000, imgsz=640, batch=512, device=[0], project='llmnas_yolov8', name=train_task_name, cache=True, plots=True)
         # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')

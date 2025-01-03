@@ -1,9 +1,9 @@
 import os
 from ultralytics import YOLO 
 import time
-from compute_nas_score import compute_nas_score_yolov8
+from compute_nas_score import compute_nas_score_yolov8, compute_nas_score_yolov8_v2
 from data_process import num_percent, save_model_info, get_max, clear_gpu_memory
-
+import numpy as np
 
 
 
@@ -76,10 +76,11 @@ if __name__ == '__main__':
             # task_name = 'yolov8l' # yolov8l:10.32-[10.31, 10.39, 10.37, 10.37, 10.26, 10.36, 10.35, 10.37, 10.28, 10.28, 10.27, 10.36, 10.28, 10.26, 10.35, 10.32, 10.25, 10.32, 10.29, 10.3]
             # task_name = 'yolov8x' # yolov8x:10.35-[10.33, 10.32, 10.38, 10.3, 10.4, 10.36, 10.27, 10.3, 10.38, 10.38, 10.38, 10.37, 10.25, 10.32, 10.4, 10.31, 10.43, 10.37, 10.37, 10.33]
             model = YOLO(f'{task_name}.yaml')
+            # model = YOLO('yolov8x.pt')
 
             # model.info(detailed=True, verbose=True)
             start_timer = time.time()
-            info = compute_nas_score_yolov8(gpu=gpu, model=model.model.cuda(gpu), repeat=32)
+            info = compute_nas_score_yolov8_v2(gpu=gpu, model=model.model.cuda(gpu), repeat=32, verbose=False)
             time_cost = (time.time() - start_timer) / 32
             zen_score = info['avg_nas_score']
             zen_score_list.append(float(f'{zen_score:.4g}'))
@@ -91,4 +92,6 @@ if __name__ == '__main__':
             clear_gpu_memory()  # Clear memory
         # zen_score_list = [float(score) for score in zen_score_list]
         average_score = sum(zen_score_list) / len(zen_score_list)
-        print(f'{task_name}:{average_score:.4g}-{zen_score_list}')
+        avg_nas_score = np.mean(zen_score_list)
+        std_nas_score = np.std(zen_score_list)
+        print(f'{task_name}:{average_score:.4g}-{avg_nas_score:.4g}-{std_nas_score:.4g}--{zen_score_list}')
