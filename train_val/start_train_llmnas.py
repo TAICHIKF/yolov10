@@ -27,7 +27,7 @@ scale = 'n' # n s m l x
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
 
-total_iterations = 10  # 假设循环5次
+total_iterations = 12  # 假设循环5次
 task_name_template = 'yolov8plus'  # 任务名称的模板
 coco_data = './train_val/cfg_llm/data/coco.yaml'
 coco_dir = '/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco' # a04 - u404
@@ -74,7 +74,7 @@ else:
     best_new_yaml_list = []
     best_new_yaml_parameters_list = []
     
-    dir_path = f"./train_val/cfg_llm/model/{api_type}_{today_time}_{total_iterations}"
+    dir_path = f"./train_val/cfg_llm/model/{api_type}_{total_iterations}"
     # 确保文件所在的目录存在，如果不存在则创建
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -166,21 +166,6 @@ else:
     train_task_name = f'{api_type}_{total_iterations}_{best_task_name}'
     save_dir=fr'./llmnas_yolov8/{train_task_name}{scale}'
     
-    # # 检查 save_dir 是否存在
-    # if os.path.exists(save_dir) and Train_flag:
-    #     # 如果 save_dir 存在，并且其中没有 results.png 文件
-    #     if not os.path.exists(os.path.join(save_dir, 'results.png')):
-    #         # 删除现有的 save_dir 目录
-    #         shutil.rmtree(save_dir)
-    #         print(f"目录 {save_dir} 已删除")
-            
-    #         # 重新创建 save_dir
-    #         os.makedirs(save_dir)
-    #         print(f"目录 {save_dir} 已重新创建")
-    # else:
-    #     # 如果 save_dir 不存在，直接创建
-    #     os.makedirs(save_dir)
-    #     print(f"目录 {save_dir} 已创建")
     
     if os.path.exists(fr'{save_dir}/results.png'):
         print(f"已经训练过，跳过操作: {best_task_name}")
@@ -190,8 +175,8 @@ else:
         best_file_path = os.path.join(dir_path, f"{best_task_name}{scale}.yaml")    
         print("# best_file_path:", best_file_path)    
         model = YOLO(best_file_path, verbose=False)
-        model.train(data=coco_data, epochs=1000, imgsz=640, batch=256, device=[4,5], project='llmnas_yolov8', name=f'{train_task_name}{scale}', cache=True, plots=True, 
-                    resume=True, model='/home/kongfei/code/yolov10/llmnas_yolov8/Poe_10_yolov8plus8/weights/last.pt'
+        model.train(data=coco_data, epochs=500, imgsz=640, batch=256, device=[4,5], project='llmnas_yolov8', name=f'{train_task_name}{scale}', cache=True, plots=True, 
+                    resume=True, model='/home/kongfei/code/yolov10/llmnas_yolov8/Poe_12_yolov8plus12n/weights/last.pt'
                     )
         # model.train(data=coco_data, epochs=1000, imgsz=640, batch=512, device=[0], project='llmnas_yolov8', name=train_task_name, cache=True, plots=True)
         # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')

@@ -87,6 +87,8 @@ user_input = f'''You need to analyze yolov8 to make the newly generated configur
                  You can modify values in scales, repeats in backbone, channel in module, and channel in head. However, it is important to note that the modified channel values need to match each other.
                  The methods to keep the number of parameters constant are as follows: 0. Only change the types of some modules, but the number of channels between modules must be strict; 1. Increase the number of layers while reducing the number of channels; 2. Increase the number of channels while reducing the number of layers. In short, the parameters, gradients and GFLOPs of the new configuration should not be increased. '''
 
+'''更复杂一些的生成方式则是替换modul的类型，可选类型有：{modules}, 具体使用示例可参考{modules_example}。在替换module时必须注意的是module之间channel的匹配，特别要注意Concat这个过程，不要把channel匹配错了。如果你对某个modules不了解具体的结构，请不要使用。'''
+
 higher_input = f'''A more complex way to generate modul is to replace the modul type with {modules}, for example {modules_example}. When replacing modules, you must pay attention to the matching of channels between modules. Pay special attention to the Concat process, and do not match the channels incorrectly. If you don't know the structure of modules, don't use them.'''
 
 suffix = '''Please do not include anything else other than configuration in your response!'''
