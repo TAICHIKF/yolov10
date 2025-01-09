@@ -23,19 +23,26 @@ from data_utils.extract_scales import extract_parameters
 
 yolov8_model = 0 # True
 Train_flag = 0 # 如果测试llm生成架构时，值为0，训练时为1
-scale = 's' # n s m l x
+scale = 'x' # n s m l x
 
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
 
-total_iterations = 50  # 假设循环5次
+total_iterations = 30  # 假设循环5次
 task_name_template = 'yolov8plus'  # 任务名称的模板
 coco_data = './train_val/cfg_llm/data/coco.yaml'
 coco_dir = '/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco' # a04 - u404
 
 
-
 # Define the scales dictionary
+YOLOv11_scales = {
+  "n": [0.50, 0.25, 1024], # summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
+  "s": [0.50, 0.50, 1024], # summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
+  "m": [0.50, 1.00, 512], # summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
+  "l": [1.00, 1.00, 512], # summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
+  "x": [1.00, 1.50, 512] # summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
+
+}
 YOLOv8_scales = {
     "n": [0.33, 0.25, 1024],  # YOLOv8n summary: 225 layers,  3157200 parameters,  3157184 gradients,   8.9 GFLOPs
     "s": [0.33, 0.50, 1024],  # YOLOv8s summary: 225 layers, 11166560 parameters, 11166544 gradients,  28.8 GFLOPs
@@ -95,6 +102,7 @@ else:
     best_task_name_list = []
     best_new_yaml_list = []
     best_new_yaml_parameters_list = []
+    best_new_yaml_gflops_list = []
     
     dir_path = f"./train_val/cfg_llm/model/{api_type}_{total_iterations}_{scale}"
     # 确保文件所在的目录存在，如果不存在则创建
@@ -123,7 +131,7 @@ else:
         else:
             try:
                 # 调用 LLM API 生成新的网络结构
-                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, params)
+                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params)
                 # print(f"生成的新结构: {new_structure}")
                 # 将新结构写入 YAML 文件
                 with open(file_path, "w") as file:
@@ -137,7 +145,7 @@ else:
                 print(f"生成时发生错误: {e}")
                 print("重新生成网络结构...")
                 # 如果报错，重新生成结构
-                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, params)
+                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params)
                 # 将新结构写入 YAML 文件
                 with open(file_path, "w") as file:
                     file.write(new_structure)
@@ -147,10 +155,11 @@ else:
             summary_info = new_model.info(detailed=False, verbose=True)
             info = compute_nas_score_yolov8(gpu=0, model=new_model.model.cuda(0))
             zen_score = round(float(info['avg_nas_score']), 4)
-            new_yaml_content, parameters = save_model_info(task_name, file_path, summary_info, zen_score, scale)
+            new_yaml_content, parameters, gflops = save_model_info(task_name, file_path, summary_info, zen_score, scale)
             print(f"# max_score_list: {max_score_list}")
             print(f"# parameters_list: {best_new_yaml_parameters_list}")
-            print(f"# {task_name}--{zen_score}-{parameters} parameters")
+            print(f"# gflops_list: {best_new_yaml_gflops_list}")
+            print(f"# {task_name}--{zen_score} score, {parameters} parameters, {gflops} gflops")
 
            # 保存 task_name 和 zen_score 到字典
             score_dict[task_name] = zen_score
@@ -158,13 +167,18 @@ else:
             with open(score_file, "w") as f:
                 json.dump(score_dict, f)
 
-
-            if zen_score > max_score:
+            if zen_score > max_score and parameters < params['parameters'] and gflops < params['GFLOPs']:
+                print("Condition met!")
+                print(f"zen_score: {zen_score}, max_score: {max_score}")
+                print(f"parameters: {parameters}, params['parameters']: {params['parameters']}")
+                print(f"gflops: {gflops}, params['GFLOPs']: {params['GFLOPs']}")
+                
                 max_score = zen_score
                 max_score_list.append(max_score)
                 best_task_name_list.append(task_name)
                 best_new_yaml_list.append(new_yaml_content)
                 best_new_yaml_parameters_list.append(parameters)
+                best_new_yaml_gflops_list.append(gflops)
                     
             # 添加到 best_arch_list 和 max_score_list 时，同时检查是否已经有 10 个元素
             if len(max_score_list) > 3:
@@ -172,6 +186,7 @@ else:
                 best_task_name_list.pop(0)
                 best_new_yaml_list.pop(0)  # 删除最前面的元素
                 best_new_yaml_parameters_list.pop(0)  # 删除最前面的元素
+                best_new_yaml_gflops_list.pop(0)  # 删除最前面的元素
             
             del new_model  # Delete model instance after each iteration
             clear_gpu_memory()  # Clear memory
@@ -186,7 +201,7 @@ else:
                 
     # print("# best_task_name_list:", best_task_name_list)        
     # best_task_name = best_task_name_list[-1]
-    train_task_name = f'{api_type}_{total_iterations}_YOLOv8{scale}_{best_task_name}'
+    train_task_name = f'{api_type}_{total_iterations}_{scale}_{best_task_name}'
     save_dir=fr'./llmnas_yolov8/{train_task_name}{scale}'
     
     

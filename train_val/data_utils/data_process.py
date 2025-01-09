@@ -119,9 +119,9 @@ def save_model_info(task_name, file_path, summary_info, zen_score, scale):
     if scale == 'n':
         yolov8n_info = '#     YOLOv8n summary: 225 layers, 3,157,200 parameters, 3,157,184 gradients,  8.9 GFLOPs'
     elif scale == 's':
-        yolov8n_info = '#     YOLOv8s summary: 225 layers, 11,166,560 parameters, 11,166,544 gradients,  28.8 GFLOPs'
+        yolov8n_info = '#     YOLOv8s summary: 225 layers, 11,166,560 parameters, 11,166,544 gradients, 28.8 GFLOPs'
     elif scale == 'm':
-        yolov8n_info = '#     YOLOv8m summary: 295 layers, 25,902,640 parameters, 25,902,624 gradients,  79.3 GFLOPs'
+        yolov8n_info = '#     YOLOv8m summary: 295 layers, 25,902,640 parameters, 25,902,624 gradients, 79.3 GFLOPs'
     elif scale == 'l':
         yolov8n_info = '#     YOLOv8l summary: 365 layers, 43,691,520 parameters, 43,691,504 gradients, 165.7 GFLOPs'
     elif scale == 'x':
@@ -154,4 +154,4 @@ def save_model_info(task_name, file_path, summary_info, zen_score, scale):
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write(new_content)
 
-    return content, parameters
+    return content, parameters, gflops

@@ -27,7 +27,8 @@ yolov8_config_yaml = """
 nc: 80 # number of classes
 scales: # model compound scaling constants, i.e. 'model=yolov8n.yaml' will call yolov8.yaml with scale 'n'
   # [depth, width, max_channels]
-  s: [0.33, 0.50, 1024]  # YOLOv8s summary: 225 layers, 11166560 parameters, 11166544 gradients,  28.8 GFLOPs
+  x: [1.00, 1.25, 512] # YOLOv8x summary: 365 layers, 68229648 parameters, 68229632 gradients, 258.5 GFLOPs
+
   
 # YOLOv8n backbone
 backbone:
@@ -94,7 +95,7 @@ higher_input = f'''A more complex way to generate modul is to replace the modul 
 suffix = '''Please do not include anything else other than configuration in your response!'''
 
 
-def generate_new_structure_using_llm(api_type, max_score_list, max_score_yaml_list, best_new_yaml_parameters_list, params):
+def generate_new_structure_using_llm(api_type, max_score_list, max_score_yaml_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params):
     
     Parameters = params['parameters']
     GFLOPs =params['GFLOPs']
@@ -107,16 +108,16 @@ def generate_new_structure_using_llm(api_type, max_score_list, max_score_yaml_li
              You can change the specific module order, and the channel value can also change. Sizes of tensors must match except in dimension 1.
              In short, you can generate a new structure according to your own understanding, and the result is better than the original configuration.'''
     
-    Params_prompt = f"Please suggest a better structure that can improve the structure's score results provided above. The parameters of the new configuration should be about {Parameters}, not more than {Gradients}."
+    Params_prompt = f"Please suggest a better structure that can improve the structure's score results provided above. The parameters of the new configuration should be less than {Parameters}. The GFLOPs of the new configuration should be less than {GFLOPs}."
         
     if len(max_score_list) > 0:
-        experiments_prompt = lambda max_score_yaml_list, max_score_list, best_new_yaml_parameters_list : '''Here are some structure's score results that you can use as a reference:
+        experiments_prompt = lambda max_score_yaml_list, max_score_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list : '''Here are some structure's score results that you can use as a reference:
         {}
-        '''.format(''.join(['{} gives a score of {:.4f}, and {} parameters.\n\n'.format(best_structure, max_score, paramter) for best_structure, max_score, paramter in zip(max_score_yaml_list, max_score_list, best_new_yaml_parameters_list)]))
+        '''.format(''.join(['{} gives a score of {:.4f}, and {} parameters.\n\n'.format(best_structure, max_score, paramter, gflops) for best_structure, max_score, paramter, gflops in zip(max_score_yaml_list, max_score_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list)]))
 
         messages = [
                 {"role": "system", "content": system_content},
-                {"role": "user", "content": user_input + higher_input + prompt + experiments_prompt(max_score_yaml_list, max_score_list, best_new_yaml_parameters_list) + Params_prompt+ suffix}] 
+                {"role": "user", "content": user_input + higher_input + prompt + experiments_prompt(max_score_yaml_list, max_score_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list) + Params_prompt+ suffix}] 
         # print("# experiments_prompt: \n ", experiments_prompt(max_score_yaml_list, max_score_list))
         
     else:
