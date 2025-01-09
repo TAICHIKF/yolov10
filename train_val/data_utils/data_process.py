@@ -114,9 +114,20 @@ def get_max(file_path):
         print(f"列 '{column_name}' 不存在，请检查列名是否正确。")
 
 
-def save_model_info(task_name, file_path, summary_info, zen_score):
+def save_model_info(task_name, file_path, summary_info, zen_score, scale):
     
-    yolov8n_info = '#     YOLOv8n summary: 225 layers, 3,157,200 parameters, 3,157,184 gradients,  8.9 GFLOPs'
+    if scale == 'n':
+        yolov8n_info = '#     YOLOv8n summary: 225 layers, 3,157,200 parameters, 3,157,184 gradients,  8.9 GFLOPs'
+    elif scale == 's':
+        yolov8n_info = '#     YOLOv8s summary: 225 layers, 11,166,560 parameters, 11,166,544 gradients,  28.8 GFLOPs'
+    elif scale == 'm':
+        yolov8n_info = '#     YOLOv8m summary: 295 layers, 25,902,640 parameters, 25,902,624 gradients,  79.3 GFLOPs'
+    elif scale == 'l':
+        yolov8n_info = '#     YOLOv8l summary: 365 layers, 43,691,520 parameters, 43,691,504 gradients, 165.7 GFLOPs'
+    elif scale == 'x':
+        yolov8n_info = '#     YOLOv8x summary: 365 layers, 68,229,648 parameters, 68,229,632 gradients, 258.5 GFLOPs'
+    else:
+        print("yolov8n_info error")
     # Unpack the tuple into individual variables
     layers, parameters, gradients, gflops = summary_info
     # Format the string using f-strings with comma separators and specified precision

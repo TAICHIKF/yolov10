@@ -30,4 +30,4 @@ def get_max(file_path):
         print(f"列 '{column_name}' 不存在，请检查列名是否正确。")
 
 # get_max('/home/kongfei/code/yolov10/runs/detect/yolov8puls10/results.csv')
-get_max('//home/kongfei/code/yolov10/llmnas_yolov8/Poe_10_yolov8plus82/results.csv')
+get_max('/home/kongfei/code/yolov10/llmnas_yolov8/Poe_12_yolov8plus12n2/results.csv')

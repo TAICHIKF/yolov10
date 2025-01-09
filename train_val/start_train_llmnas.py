@@ -17,20 +17,42 @@ from ultralytics import YOLO
 from LLM.llm_generate_module import generate_new_structure_using_llm
 from data_utils.compute_nas_score import compute_nas_score_yolov8
 from data_utils.data_process import num_percent, save_model_info, get_max, clear_gpu_memory
-
+from data_utils.extract_scales import extract_parameters
 #-----------------------------------------------------------------
 
+
 yolov8_model = 0 # True
-Train_flag = 1 # 如果测试llm生成架构时，值为0，训练时为1
-scale = 'n' # n s m l x
+Train_flag = 0 # 如果测试llm生成架构时，值为0，训练时为1
+scale = 's' # n s m l x
 
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
 
-total_iterations = 12  # 假设循环5次
+total_iterations = 50  # 假设循环5次
 task_name_template = 'yolov8plus'  # 任务名称的模板
 coco_data = './train_val/cfg_llm/data/coco.yaml'
 coco_dir = '/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco' # a04 - u404
+
+
+
+# Define the scales dictionary
+YOLOv8_scales = {
+    "n": [0.33, 0.25, 1024],  # YOLOv8n summary: 225 layers,  3157200 parameters,  3157184 gradients,   8.9 GFLOPs
+    "s": [0.33, 0.50, 1024],  # YOLOv8s summary: 225 layers, 11166560 parameters, 11166544 gradients,  28.8 GFLOPs
+    "m": [0.67, 0.75, 768],   # YOLOv8m summary: 295 layers, 25902640 parameters, 25902624 gradients,  79.3 GFLOPs
+    "l": [1.00, 1.00, 512],   # YOLOv8l summary: 365 layers, 43691520 parameters, 43691504 gradients, 165.7 GFLOPs
+    "x": [1.00, 1.25, 512],   # YOLOv8x summary: 365 layers, 68229648 parameters, 68229632 gradients, 258.5 GFLOPs
+}
+
+if scale in YOLOv8_scales:
+    value = YOLOv8_scales[scale]
+    params = extract_parameters(scale)
+    # print(f"Scale '{scale}' details:")
+    # print(f"  Depth: {value[0]}, Width: {value[1]}, Max Channels: {value[2]}")
+    print(f"YOLOv8{scale} Layers: {params['layers']}, Parameters: {params['parameters']}, Gradients: {params['gradients']}, GFLOPs: {params['GFLOPs']}")
+else:
+    print(f"Invalid key '{scale}'. Please enter one of: {', '.join(YOLOv8_scales.keys())}")
+
 
 #-----------------------------------------------------------------
 #-----------------------------------------------------------------
@@ -74,7 +96,7 @@ else:
     best_new_yaml_list = []
     best_new_yaml_parameters_list = []
     
-    dir_path = f"./train_val/cfg_llm/model/{api_type}_{total_iterations}"
+    dir_path = f"./train_val/cfg_llm/model/{api_type}_{total_iterations}_{scale}"
     # 确保文件所在的目录存在，如果不存在则创建
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -101,20 +123,21 @@ else:
         else:
             try:
                 # 调用 LLM API 生成新的网络结构
-                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list)
+                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, params)
                 # print(f"生成的新结构: {new_structure}")
                 # 将新结构写入 YAML 文件
                 with open(file_path, "w") as file:
                     file.write(new_structure)
                 print(f"YAML 文件已保存到: {file_path}")
                 # 使用生成的 YAML 文件进行模型训练
+                print("# file_path:", file_path)
                 new_model = YOLO(file_path, verbose=True)
             
             except Exception as e:
                 print(f"生成时发生错误: {e}")
                 print("重新生成网络结构...")
                 # 如果报错，重新生成结构
-                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list)
+                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, params)
                 # 将新结构写入 YAML 文件
                 with open(file_path, "w") as file:
                     file.write(new_structure)
@@ -124,7 +147,7 @@ else:
             summary_info = new_model.info(detailed=False, verbose=True)
             info = compute_nas_score_yolov8(gpu=0, model=new_model.model.cuda(0))
             zen_score = round(float(info['avg_nas_score']), 4)
-            new_yaml_content, parameters = save_model_info(task_name, file_path, summary_info, zen_score)
+            new_yaml_content, parameters = save_model_info(task_name, file_path, summary_info, zen_score, scale)
             print(f"# max_score_list: {max_score_list}")
             print(f"# parameters_list: {best_new_yaml_parameters_list}")
             print(f"# {task_name}--{zen_score}-{parameters} parameters")
@@ -163,7 +186,7 @@ else:
                 
     # print("# best_task_name_list:", best_task_name_list)        
     # best_task_name = best_task_name_list[-1]
-    train_task_name = f'{api_type}_{total_iterations}_{best_task_name}'
+    train_task_name = f'{api_type}_{total_iterations}_YOLOv8{scale}_{best_task_name}'
     save_dir=fr'./llmnas_yolov8/{train_task_name}{scale}'
     
     
@@ -175,8 +198,8 @@ else:
         best_file_path = os.path.join(dir_path, f"{best_task_name}{scale}.yaml")    
         print("# best_file_path:", best_file_path)    
         model = YOLO(best_file_path, verbose=False)
-        model.train(data=coco_data, epochs=500, imgsz=640, batch=256, device=[4,5], project='llmnas_yolov8', name=f'{train_task_name}{scale}', cache=True, plots=True, 
-                    resume=True, model='/home/kongfei/code/yolov10/llmnas_yolov8/Poe_12_yolov8plus12n/weights/last.pt'
+        model.train(data=coco_data, epochs=500, imgsz=640, batch=32, device=[3], project='llmnas_yolov8', name=f'{train_task_name}{scale}', cache=True, plots=True, 
+                    # resume=True, model='/home/kongfei/code/yolov10/llmnas_yolov8/Poe_12_yolov8plus12n2/weights/last.pt'
                     )
         # model.train(data=coco_data, epochs=1000, imgsz=640, batch=512, device=[0], project='llmnas_yolov8', name=train_task_name, cache=True, plots=True)
         # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
