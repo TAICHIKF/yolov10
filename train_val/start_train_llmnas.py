@@ -22,13 +22,13 @@ from data_utils.extract_scales import extract_parameters
 
 
 yolov8_model = 0 # True
-Train_flag = 0 # 如果测试llm生成架构时，值为0，训练时为1
-scale = 'x' # n s m l x
+Train_flag = 1 # 如果测试llm生成架构时，值为0，训练时为1
+scale = 'n' # n s m l x
 
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
 
-total_iterations = 30  # 假设循环5次
+total_iterations = 20  # 假设循环5次
 task_name_template = 'yolov8plus'  # 任务名称的模板
 coco_data = './train_val/cfg_llm/data/coco.yaml'
 coco_dir = '/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco' # a04 - u404
@@ -161,13 +161,13 @@ else:
             print(f"# gflops_list: {best_new_yaml_gflops_list}")
             print(f"# {task_name}--{zen_score} score, {parameters} parameters, {gflops} gflops")
 
-           # 保存 task_name 和 zen_score 到字典
-            score_dict[task_name] = zen_score
-            # 将字典保存到文件
-            with open(score_file, "w") as f:
-                json.dump(score_dict, f)
-
             if zen_score > max_score and parameters < params['parameters'] and gflops < params['GFLOPs']:
+                # 保存 task_name 和 zen_score 到字典
+                score_dict[task_name] = zen_score
+                # 将字典保存到文件
+                with open(score_file, "w") as f:
+                    json.dump(score_dict, f)
+                    
                 print("Condition met!")
                 print(f"zen_score: {zen_score}, max_score: {max_score}")
                 print(f"parameters: {parameters}, params['parameters']: {params['parameters']}")
@@ -213,7 +213,7 @@ else:
         best_file_path = os.path.join(dir_path, f"{best_task_name}{scale}.yaml")    
         print("# best_file_path:", best_file_path)    
         model = YOLO(best_file_path, verbose=False)
-        model.train(data=coco_data, epochs=500, imgsz=640, batch=32, device=[3], project='llmnas_yolov8', name=f'{train_task_name}{scale}', cache=True, plots=True, 
+        model.train(data=coco_data, epochs=1000, imgsz=640, batch=256, device=[0,6], project='llmnas_yolov8', name=f'{train_task_name}{scale}', cache=True, plots=True, 
                     # resume=True, model='/home/kongfei/code/yolov10/llmnas_yolov8/Poe_12_yolov8plus12n2/weights/last.pt'
                     )
         # model.train(data=coco_data, epochs=1000, imgsz=640, batch=512, device=[0], project='llmnas_yolov8', name=train_task_name, cache=True, plots=True)
