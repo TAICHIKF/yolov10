@@ -7,8 +7,9 @@ scales = {
     "x": [1.00, 1.25, 512],   # YOLOv8x summary: 365 layers, 68229648 parameters, 68229632 gradients, 258.5 GFLOPs
 }
 
+
 # Define the extraction function
-def extract_parameters(scale_key):
+def extract_parameters(scale_key, version='v8'):
     results = {
         "layers": None,
         "parameters": None,
@@ -16,47 +17,87 @@ def extract_parameters(scale_key):
         "GFLOPs": None,
     }
     
-    # Use conditional statements to extract parameters based on the key
-    if scale_key == "n":
-        results.update({
-            "layers": 225,
-            "parameters": 3000000,
-            "gradients":  3157184,
-            "GFLOPs": 8.9
-        })
-    elif scale_key == "s":
-        results.update({
-            "layers": 225,
-            "parameters": 10000000,
-            "gradients":  11166544,
-            "GFLOPs": 28.8
-        })
-    elif scale_key == "m":
-        results.update({
-            "layers": 295,
-            "parameters": 25000000,
-            "gradients":  25902624,
-            "GFLOPs": 79.3
-        })
-    elif scale_key == "l":
-        results.update({
-            "layers": 365,
-            "parameters": 40000000,
-            "gradients":  43691504,
-            "GFLOPs": 165.7
-        })
-    elif scale_key == "x":
-        results.update({
-            "layers": 365,
-            "parameters": 60000000,
-            "gradients":  68229632,
-            "GFLOPs": 258.5
-        })
-    else:
-        raise ValueError(f"Unknown scale key: {scale_key}")
-
+    if version == 'v8':
+        # Use conditional statements to extract parameters based on the key
+        if scale_key == "n":
+            results.update({
+                "layers": 225,
+                "parameters": 3000000,
+                "gradients":  3157184,
+                "GFLOPs": 8.9
+            })
+        elif scale_key == "s":
+            results.update({
+                "layers": 225,
+                "parameters": 10000000,
+                "gradients":  11166544,
+                "GFLOPs": 28.8
+            })
+        elif scale_key == "m":
+            results.update({
+                "layers": 295,
+                "parameters": 25000000,
+                "gradients":  25902624,
+                "GFLOPs": 79.3
+            })
+        elif scale_key == "l":
+            results.update({
+                "layers": 365,
+                "parameters": 40000000,
+                "gradients":  43691504,
+                "GFLOPs": 165.7
+            })
+        elif scale_key == "x":
+            results.update({
+                "layers": 365,
+                "parameters": 60000000,
+                "gradients":  68229632,
+                "GFLOPs": 258.5
+            })
+        else:
+            raise ValueError(f"Unknown scale key: {scale_key}")
+        
+    elif version == 'v11':
+        # Use conditional statements to extract parameters based on the key
+        if scale_key == "n":
+            results.update({
+                "layers": 319,
+                "parameters": 2624080,
+                "gradients": 2624064,
+                "GFLOPs": 6.6
+            })
+        elif scale_key == "s":
+            results.update({
+                "layers": 319,
+                "parameters": 9458752,
+                "gradients": 9458736,
+                "GFLOPs": 21.7
+            })
+        elif scale_key == "m":
+            results.update({
+                "layers": 409,
+                "parameters": 20114688,
+                "gradients": 20114672,
+                "GFLOPs": 68.5
+            })
+        elif scale_key == "l":
+            results.update({
+                "layers": 631,
+                "parameters": 25372160,
+                "gradients": 25372144,
+                "GFLOPs": 87.6
+            })
+        elif scale_key == "x":
+            results.update({
+                "layers": 631,
+                "parameters": 56966176,
+                "gradients": 56966160,
+                "GFLOPs": 196.0
+            })
+        else:
+            raise ValueError(f"Unknown scale key: {scale_key}")
+    
     return results
-
 
         
 if __name__ == '__main__':
@@ -66,7 +107,7 @@ if __name__ == '__main__':
 
     if key in scales:
         value = scales[key]
-        params = extract_parameters(key)
+        params = extract_parameters(key, version='v8')
         print(params)
         
         # print(f"Scale '{key}' details:")

@@ -10,7 +10,7 @@ yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=6
 import os
 import yaml
 import json
-import shutil
+# import shutil
 from datetime import datetime
 from ultralytics import YOLO
 # from LLM.llm_generate import generate_new_structure_using_llm
@@ -24,12 +24,15 @@ from data_utils.extract_scales import extract_parameters
 yolov8_model = 0 # True
 Train_flag = 1 # 如果测试llm生成架构时，值为0，训练时为1
 scale = 'n' # n s m l x
+more_modules = 0 # llm生成架构时，更改模块类型则为1
+total_iterations = 20  # 假设循环5次
+
 
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
 
-total_iterations = 20  # 假设循环5次
-task_name_template = 'yolov8plus'  # 任务名称的模板
+version = 'v8'
+task_name_template = f'yolo{version}plus'  # 任务名称的模板
 coco_data = './train_val/cfg_llm/data/coco.yaml'
 coco_dir = '/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco' # a04 - u404
 
@@ -51,9 +54,18 @@ YOLOv8_scales = {
     "x": [1.00, 1.25, 512],   # YOLOv8x summary: 365 layers, 68229648 parameters, 68229632 gradients, 258.5 GFLOPs
 }
 
-if scale in YOLOv8_scales:
-    value = YOLOv8_scales[scale]
-    params = extract_parameters(scale)
+# Check which scale dictionary to use
+if version == "v8":
+    scales_dict = YOLOv8_scales
+elif version == "v11":
+    scales_dict = YOLOv11_scales
+else:
+    print(f"Invalid version '{version}'. 'v8' or 'v11'.")
+    exit(1)
+
+if scale in scales_dict:
+    value = scales_dict[scale]
+    params = extract_parameters(scale, version)
     # print(f"Scale '{scale}' details:")
     # print(f"  Depth: {value[0]}, Width: {value[1]}, Max Channels: {value[2]}")
     print(f"YOLOv8{scale} Layers: {params['layers']}, Parameters: {params['parameters']}, Gradients: {params['gradients']}, GFLOPs: {params['GFLOPs']}")
@@ -131,7 +143,7 @@ else:
         else:
             try:
                 # 调用 LLM API 生成新的网络结构
-                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params)
+                new_structure = generate_new_structure_using_llm(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
                 # print(f"生成的新结构: {new_structure}")
                 # 将新结构写入 YAML 文件
                 with open(file_path, "w") as file:
@@ -145,7 +157,7 @@ else:
                 print(f"生成时发生错误: {e}")
                 print("重新生成网络结构...")
                 # 如果报错，重新生成结构
-                new_structure = generate_new_structure_using_llm(api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params)
+                new_structure = generate_new_structure_using_llm(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
                 # 将新结构写入 YAML 文件
                 with open(file_path, "w") as file:
                     file.write(new_structure)
@@ -165,7 +177,7 @@ else:
                 # 保存 task_name 和 zen_score 到字典
                 score_dict[task_name] = zen_score
                 # 将字典保存到文件
-                with open(score_file, "w") as f:
+                with open(score_file, "w") as f: 
                     json.dump(score_dict, f)
                     
                 print("Condition met!")
@@ -213,7 +225,7 @@ else:
         best_file_path = os.path.join(dir_path, f"{best_task_name}{scale}.yaml")    
         print("# best_file_path:", best_file_path)    
         model = YOLO(best_file_path, verbose=False)
-        model.train(data=coco_data, epochs=1000, imgsz=640, batch=256, device=[0,6], project='llmnas_yolov8', name=f'{train_task_name}{scale}', cache=True, plots=True, 
+        model.train(data=coco_data, epochs=1000, imgsz=640, batch=256, device=[0,1], project='llmnas_yolov8', name=f'{train_task_name}{scale}', cache=True, plots=True, pretrained=False,
                     # resume=True, model='/home/kongfei/code/yolov10/llmnas_yolov8/Poe_12_yolov8plus12n2/weights/last.pt'
                     )
         # model.train(data=coco_data, epochs=1000, imgsz=640, batch=512, device=[0], project='llmnas_yolov8', name=train_task_name, cache=True, plots=True)
