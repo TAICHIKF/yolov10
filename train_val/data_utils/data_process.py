@@ -114,20 +114,34 @@ def get_max(file_path):
         print(f"列 '{column_name}' 不存在，请检查列名是否正确。")
 
 
-def save_model_info(task_name, file_path, summary_info, zen_score, scale):
-    
-    if scale == 'n':
-        yolov8n_info = '#     YOLOv8n summary: 225 layers, 3,157,200 parameters, 3,157,184 gradients,  8.9 GFLOPs'
-    elif scale == 's':
-        yolov8n_info = '#     YOLOv8s summary: 225 layers, 11,166,560 parameters, 11,166,544 gradients, 28.8 GFLOPs'
-    elif scale == 'm':
-        yolov8n_info = '#     YOLOv8m summary: 295 layers, 25,902,640 parameters, 25,902,624 gradients, 79.3 GFLOPs'
-    elif scale == 'l':
-        yolov8n_info = '#     YOLOv8l summary: 365 layers, 43,691,520 parameters, 43,691,504 gradients, 165.7 GFLOPs'
-    elif scale == 'x':
-        yolov8n_info = '#     YOLOv8x summary: 365 layers, 68,229,648 parameters, 68,229,632 gradients, 258.5 GFLOPs'
-    else:
-        print("yolov8n_info error")
+def save_model_info(task_name, file_path, summary_info, zen_score, version, scale):
+    if version == 'v8':
+        if scale == 'n':
+            yolo_info = '#     YOLOv8n summary: 225 layers, 3,157,200 parameters, 3,157,184 gradients,  8.9 GFLOPs'
+        elif scale == 's':
+            yolo_info = '#     YOLOv8s summary: 225 layers, 11,166,560 parameters, 11,166,544 gradients, 28.8 GFLOPs'
+        elif scale == 'm':
+            yolo_info = '#     YOLOv8m summary: 295 layers, 25,902,640 parameters, 25,902,624 gradients, 79.3 GFLOPs'
+        elif scale == 'l':
+            yolo_info = '#     YOLOv8l summary: 365 layers, 43,691,520 parameters, 43,691,504 gradients, 165.7 GFLOPs'
+        elif scale == 'x':
+            yolo_info = '#     YOLOv8x summary: 365 layers, 68,229,648 parameters, 68,229,632 gradients, 258.5 GFLOPs'
+        else:
+            print("yolov8_info error")
+            
+    elif version =='v11':
+        if scale == 'n':
+            yolo_info = '#     YOLOv11n summary: 319 layers, 2,624,080 parameters, 2,624,064 gradients, 6.6 GFLOPs'
+        elif scale == 's':
+            yolo_info = '#     YOLOv11s summary: 319 layers, 9,458,752 parameters, 9,458,736 gradients, 21.7 GFLOPs'
+        elif scale == 'm':
+            yolo_info = '#     YOLOv11m summary: 409 layers, 20,114,688 parameters, 20,114,672 gradients, 68.5 GFLOPs'
+        elif scale == 'l':
+            yolo_info = '#     YOLOv11l summary: 631 layers, 25,372,160 parameters, 25,372,144 gradients, 87.6 GFLOPs'
+        elif scale == 'x':
+            yolo_info = '#     YOLOv11x summary: 631 layers, 56,966,176 parameters, 56,966,160 gradients, 196.0 GFLOPs'
+        else:
+            print("yolov11_info error")
     # Unpack the tuple into individual variables
     layers, parameters, gradients, gflops = summary_info
     # Format the string using f-strings with comma separators and specified precision
@@ -148,7 +162,7 @@ def save_model_info(task_name, file_path, summary_info, zen_score, scale):
         content += '\n\n' 
 
     # 将现有内容和新的 formatted_summary 合并
-    new_content = content + yolov8n_info + '\n' + formatted_summary + '\n'
+    new_content = content + yolo_info + '\n' + formatted_summary + '\n'
 
     # 将合并后的内容写回文件
     with open(file_path, 'w', encoding='utf-8') as file:

@@ -31,6 +31,8 @@ from .block import (
     C2fAttn,
     ImagePoolingAttn,
     C3Ghost,
+    C3k2, # v11
+    C2PSA, # v11
     C3x,
     GhostBottleneck,
     HGBlock,
@@ -107,6 +109,8 @@ __all__ = (
     "C2",
     "C3",
     "C2f",
+    "C3k2", # v11
+    "C2PSA", # v11
     "C2fAttn",
     "C3x",
     "C3TR",

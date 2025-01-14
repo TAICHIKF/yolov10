@@ -139,7 +139,7 @@ dmypy.json
 
 # datasets and projects
 llmv8/
-llmnas_yolov8/
+llmnas_yolov*/
 *cfg_llm/
 datasets/
 runs/
