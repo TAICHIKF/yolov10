@@ -23,11 +23,11 @@ from data_utils.extract_scales import extract_parameters
 
 version = 'v11'
 scale = 'n' # n s m l x
-more_modules = 1 # llm生成架构时，更改模块类型则为1
-Train_flag = 1  # 如果测试llm生成架构时，值为0，训练时为1
+more_modules = 0 # llm生成架构时，更改模块类型则为1
+Train_flag = 0  # 如果测试llm生成架构时，值为0，训练时为1
 
 yolov8_model = 0 # True
-total_iterations = 5 # 假设循环5次
+total_iterations = 2 # 假设循环5次
 
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
@@ -177,7 +177,7 @@ else:
                 new_model = YOLO(file_path, verbose=True)
                 
             summary_info = new_model.info(detailed=False, verbose=True)
-            info = compute_nas_score_yolov8(gpu=7, model=new_model.model.cuda(7))
+            info = compute_nas_score_yolov8(gpu=2, model=new_model.model.cuda(2))
             zen_score = round(float(info['avg_nas_score']), 4)
             new_yaml_content, parameters, gflops = save_model_info(task_name, file_path, summary_info, zen_score, version,  scale)
             print(f"# max_score_list: {max_score_list}")

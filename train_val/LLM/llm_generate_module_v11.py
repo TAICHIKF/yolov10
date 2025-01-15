@@ -9,221 +9,227 @@ yolov11n_config_yaml = """
 # Optimized YOLOv11 object detection model with P3-P5 outputs. Targeting performance improvement without increasing parameters.
 
 # Parameters
-nc: 80  # number of classes
-scales:  # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call yolo11.yaml with scale 'n'
-  # [depth, width, max_channels]
-  n: [0.50, 0.25, 1024]  # YOLOv11n summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
-  s: [0.50, 0.50, 1024]  # YOLOv11s summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
-  m: [0.50, 1.00, 512]  # YOLOv11m summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
-  l: [1.00, 1.00, 512]  # YOLOv11l summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
-  x: [1.00, 1.50, 512]  # YOLOv11x summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
+nc: 80 # Number of classes the model is trained to detect.
+scales: # model compound scaling constants, i.e. 'model=yolov11n.yaml' will call yolov11.yaml with scale 'n'
+  # [depth, width, max_channels]  The difference between the depth and width values should not exceed 0.5, max_channels is best not adjusted. 
+  n: [0.50, 0.25, 1024] # YOLOv11n summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
 
-# YOLOv11n backbone
+# YOLO11n Backbone
 backbone:
-  # [from, repeats, module, args]
-  - [-1, 1, Conv, [64, 3, 2]]  # 0-P1/2， 第0层，Conv模块，输入为原始图像(640x640x3)，卷积参数：输出通道数为64，卷积核大小为3x3，步长为2。
-  - [-1, 1, Conv, [128, 3, 2]]  # 1-P2/4， 第1层，Conv模块，输入为上一层输出，输出通道数为128，卷积核大小为3x3，步长为2。
-  - [-1, 2, C2f, [128, True]]  # 2， 第2层，C2f模块，重复2次，输出通道数为128，带有shortcut连接。
-  - [-1, 1, Conv, [256, 3, 2]]  # 3-P3/8， 第3层，Conv模块，输入为上一层输出，输出通道数为256，卷积核大小为3x3，步长为2。
-  - [-1, 4, C2f, [256, True]]  # 4，  第4层，C2f模块，重复4次，输出通道数为256，带有shortcut连接。
-  - [-1, 1, Conv, [512, 3, 2]]  # 5-P4/16， 第5层，Conv模块，输入为上一层输出，输出通道数为512，卷积核大小为3x3，步长为2。
-  - [-1, 6, C2f, [512, True]]  # 6 ， 第6层，C2f模块，重复6次，输出通道数为512，带有shortcut连接。
-  - [-1, 1, Conv, [1024, 3, 2]]  # 7-P5/32， 第7层，Conv模块，输入为上一层输出，输出通道数为1024，卷积核大小为3x3，步长为2。
-  - [-1, 3, C2f, [1024, True]]  # 8， 第8层，C2f模块，重复3次，输出通道数为1024，带有shortcut连接。
-  - [-1, 1, SPPF, [1024, 5]]  # 9， 第9层，SPPF模块（快速空间金字塔池化层），输出通道数为1024，池化核大小为5。
+  # [from, repeats, module, args] # Each entry defines a layer in the backbone, specifying the source layer(s), number of repeats, module type, and arguments.
+  - [-1, 1, Conv, [64, 3, 2]] # Convolutional layer 0: 64 filters, 3x3 kernel, stride 2 (P1/2)
+  - [-1, 1, Conv, [128, 3, 2]] # Convolutional layer 1: 128 filters, 3x3 kernel, stride 2 (P2/4)
+  - [-1, 2, C3k2, [256, False, 0.25]] # C3k2 block 2: 256 filters, no shortcut, expansion ratio 0.25
+  - [-1, 1, Conv, [256, 3, 2]] # Convolutional layer 3: 256 filters, 3x3 kernel, stride 2 (P3/8)
+  - [-1, 2, C3k2, [512, False, 0.25]] # C3k2 block 4: 512 filters, no shortcut, expansion ratio 0.25
+  - [-1, 1, Conv, [512, 3, 2]] # Convolutional layer 5: 512 filters, 3x3 kernel, stride 2 (P4/16)
+  - [-1, 2, C3k2, [512, True]] # C3k2 block 6: 512 filters, shortcut enabled
+  - [-1, 1, Conv, [1024, 3, 2]] # Convolutional layer 7: 1024 filters, 3x3 kernel, stride 2 (P5/32)
+  - [-1, 2, C3k2, [1024, True]] # C3k2 block 8: 1024 filters, shortcut enabled
+  - [-1, 1, SPPF, [1024, 5]] # Spatial Pyramid Pooling Fixed block 9: 1024 filters, kernel size 5
+  - [-1, 2, C2PSA, [1024]] # C2PSA block 10: 1024 filters
 
-# YOLOv11n head
+# YOLO11n Head
 head:
-  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 10， 第10层，上采样层，输入为上一层输出，scale_factor=2，mode=nearest。
-  - [[-1, 6], 1, Concat, [1]]  # 11-cat backbone P4， 第11层，Concat模块，将第10层和第6层的输出按通道拼接。
-  - [-1, 3, C2f, [512]]  # 12， 第12层，C2f模块，重复3次，输出通道数为512，shortcut关闭。
-  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 13，第13层，上采样层，scale_factor=2，mode=nearest。
-  - [[-1, 4], 1, Concat, [1]]  # 14-cat backbone P3， 第14层，Concat模块，将第13层和第4层的输出按通道拼接。
-  - [-1, 3, C2f, [256]]  # 15-P3/8 (small) 第15层，C2f模块，重复3次，输出通道数为256，shortcut关闭。
-  - [-1, 1, Conv, [256, 3, 2]]  # 16  第16层，Conv模块，步长为2。
-  - [[-1, 12], 1, Concat, [1]]  # 17-cat head P4，第17层，Concat模块，将第16层和第12层的输出按通道拼接。
-  - [-1, 3, C2f, [512]]  # 18-P4/16 (medium) ，第18层，C2f模块，重复3次，输出通道数为512，shortcut关闭。
-  - [-1, 1, Conv, [512, 3, 2]]  # 19  第19层，Conv模块，步长为2。
-  - [[-1, 9], 1, Concat, [1]]  # 20-cat head P5 ，第20层，Concat模块，将第19层和第9层的输出按通道拼接。
-  - [-1, 3, C2f, [1024]]  # 21-P5/32 (large) ，第21层，C2f模块，重复3次，输出通道数为1024，shortcut关闭。
-  - [[15, 18, 21], 1, Detect, [nc]]  # 22-Detect(P3, P4, P5) ，第22层，Detect模块，输入为第15层（P3）、第18层（P4）和第21层（P5）的输出。
+  # The head section processes the features extracted by the backbone for object detection.
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # Upsample layer 11: scale factor 2, nearest neighbor interpolation
+  - [[-1, 6], 1, Concat, [1]] # Concatenate layer 12: concatenate with backbone P4 feature map
+  - [-1, 2, C3k2, [512, False]] # C3k2 block 13: 512 filters, no shortcut
+  
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # Upsample layer 14: scale factor 2, nearest neighbor interpolation
+  - [[-1, 4], 1, Concat, [1]] # Concatenate layer 15: concatenate with backbone P3 feature map
+  - [-1, 2, C3k2, [256, False]] # C3k2 block 16: 256 filters, no shortcut (P3/8-small)
+  
+  - [-1, 1, Conv, [256, 3, 2]] # Convolutional layer 17: 256 filters, 3x3 kernel, stride 2
+  - [[-1, 13], 1, Concat, [1]] # Concatenate layer 18: concatenate with head P4 feature map
+  - [-1, 2, C3k2, [512, False]] # C3k2 block 19: 512 filters, no shortcut (P4/16-medium)
+  
+  - [-1, 1, Conv, [512, 3, 2]] # Convolutional layer 20: 512 filters, 3x3 kernel, stride 2
+  - [[-1, 10], 1, Concat, [1]] # Concatenate layer 21: concatenate with head P5 feature map
+  - [-1, 2, C3k2, [1024, True]] # C3k2 block 22: 1024 filters, shortcut enabled (P5/32-large)
+  
+  - [[16, 19, 22], 1, Detect, [nc]] # Detection layer: process feature maps from P3, P4, P5 for object detection
 """
+
 # YAML 内容作为多行字符串
 yolov11s_config_yaml = """
-# Optimized YOLOv11 object detection model with P3-P5 outputs. Targeting performance improvement without increasing parameters.
-
 # Parameters
-nc: 80  # number of classes
-scales:  # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call yolo11.yaml with scale 'n'
-  # [depth, width, max_channels]
-  n: [0.50, 0.25, 1024]  # YOLOv11n summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
-  s: [0.50, 0.50, 1024]  # YOLOv11s summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
-  m: [0.50, 1.00, 512]  # YOLOv11m summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
-  l: [1.00, 1.00, 512]  # YOLOv11l summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
-  x: [1.00, 1.50, 512]  # YOLOv11x summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
-
-# YOLOv11n backbone
+nc: 80 # Number of classes the model is trained to detect.
+scales: # model compound scaling constants, i.e. 'model=yolov11n.yaml' will call yolov11.yaml with scale 'n'
+  # [depth, width, max_channels], max_channels is best not adjusted.
+  s: [0.50, 0.50, 1024] # YOLOv11s summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
+  
+# YOLO11n Backbone
 backbone:
-  # [from, repeats, module, args]
-  - [-1, 1, Conv, [64, 3, 2]]  # 0-P1/2， 第0层，Conv模块，输入为原始图像(640x640x3)，卷积参数：输出通道数为64，卷积核大小为3x3，步长为2。
-  - [-1, 1, Conv, [128, 3, 2]]  # 1-P2/4， 第1层，Conv模块，输入为上一层输出，输出通道数为128，卷积核大小为3x3，步长为2。
-  - [-1, 2, C2f, [128, True]]  # 2， 第2层，C2f模块，重复2次，输出通道数为128，带有shortcut连接。
-  - [-1, 1, Conv, [256, 3, 2]]  # 3-P3/8， 第3层，Conv模块，输入为上一层输出，输出通道数为256，卷积核大小为3x3，步长为2。
-  - [-1, 4, C2f, [256, True]]  # 4，  第4层，C2f模块，重复4次，输出通道数为256，带有shortcut连接。
-  - [-1, 1, Conv, [512, 3, 2]]  # 5-P4/16， 第5层，Conv模块，输入为上一层输出，输出通道数为512，卷积核大小为3x3，步长为2。
-  - [-1, 6, C2f, [512, True]]  # 6 ， 第6层，C2f模块，重复6次，输出通道数为512，带有shortcut连接。
-  - [-1, 1, Conv, [1024, 3, 2]]  # 7-P5/32， 第7层，Conv模块，输入为上一层输出，输出通道数为1024，卷积核大小为3x3，步长为2。
-  - [-1, 3, C2f, [1024, True]]  # 8， 第8层，C2f模块，重复3次，输出通道数为1024，带有shortcut连接。
-  - [-1, 1, SPPF, [1024, 5]]  # 9， 第9层，SPPF模块（快速空间金字塔池化层），输出通道数为1024，池化核大小为5。
+  # [from, repeats, module, args] # Each entry defines a layer in the backbone, specifying the source layer(s), number of repeats, module type, and arguments.
+  - [-1, 1, Conv, [64, 3, 2]] # Convolutional layer 0: 64 filters, 3x3 kernel, stride 2 (P1/2)
+  - [-1, 1, Conv, [128, 3, 2]] # Convolutional layer 1: 128 filters, 3x3 kernel, stride 2 (P2/4)
+  - [-1, 2, C3k2, [256, False, 0.25]] # C3k2 block 2: 256 filters, no shortcut, expansion ratio 0.25
+  - [-1, 1, Conv, [256, 3, 2]] # Convolutional layer 3: 256 filters, 3x3 kernel, stride 2 (P3/8)
+  - [-1, 2, C3k2, [512, False, 0.25]] # C3k2 block 4: 512 filters, no shortcut, expansion ratio 0.25
+  - [-1, 1, Conv, [512, 3, 2]] # Convolutional layer 5: 512 filters, 3x3 kernel, stride 2 (P4/16)
+  - [-1, 2, C3k2, [512, True]] # C3k2 block 6: 512 filters, shortcut enabled
+  - [-1, 1, Conv, [1024, 3, 2]] # Convolutional layer 7: 1024 filters, 3x3 kernel, stride 2 (P5/32)
+  - [-1, 2, C3k2, [1024, True]] # C3k2 block 8: 1024 filters, shortcut enabled
+  - [-1, 1, SPPF, [1024, 5]] # Spatial Pyramid Pooling Fixed block 9: 1024 filters, kernel size 5
+  - [-1, 2, C2PSA, [1024]] # C2PSA block 10: 1024 filters
 
-# YOLOv11n head
+# YOLO11n Head
 head:
-  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 10， 第10层，上采样层，输入为上一层输出，scale_factor=2，mode=nearest。
-  - [[-1, 6], 1, Concat, [1]]  # 11-cat backbone P4， 第11层，Concat模块，将第10层和第6层的输出按通道拼接。
-  - [-1, 3, C2f, [512]]  # 12， 第12层，C2f模块，重复3次，输出通道数为512，shortcut关闭。
-  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 13，第13层，上采样层，scale_factor=2，mode=nearest。
-  - [[-1, 4], 1, Concat, [1]]  # 14-cat backbone P3， 第14层，Concat模块，将第13层和第4层的输出按通道拼接。
-  - [-1, 3, C2f, [256]]  # 15-P3/8 (small) 第15层，C2f模块，重复3次，输出通道数为256，shortcut关闭。
-  - [-1, 1, Conv, [256, 3, 2]]  # 16  第16层，Conv模块，步长为2。
-  - [[-1, 12], 1, Concat, [1]]  # 17-cat head P4，第17层，Concat模块，将第16层和第12层的输出按通道拼接。
-  - [-1, 3, C2f, [512]]  # 18-P4/16 (medium) ，第18层，C2f模块，重复3次，输出通道数为512，shortcut关闭。
-  - [-1, 1, Conv, [512, 3, 2]]  # 19  第19层，Conv模块，步长为2。
-  - [[-1, 9], 1, Concat, [1]]  # 20-cat head P5 ，第20层，Concat模块，将第19层和第9层的输出按通道拼接。
-  - [-1, 3, C2f, [1024]]  # 21-P5/32 (large) ，第21层，C2f模块，重复3次，输出通道数为1024，shortcut关闭。
-  - [[15, 18, 21], 1, Detect, [nc]]  # 22-Detect(P3, P4, P5) ，第22层，Detect模块，输入为第15层（P3）、第18层（P4）和第21层（P5）的输出。
+  # The head section processes the features extracted by the backbone for object detection.
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # Upsample layer 11: scale factor 2, nearest neighbor interpolation
+  - [[-1, 6], 1, Concat, [1]] # Concatenate layer 12: concatenate with backbone P4 feature map
+  - [-1, 2, C3k2, [512, False]] # C3k2 block 13: 512 filters, no shortcut
+  
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # Upsample layer 14: scale factor 2, nearest neighbor interpolation
+  - [[-1, 4], 1, Concat, [1]] # Concatenate layer 15: concatenate with backbone P3 feature map
+  - [-1, 2, C3k2, [256, False]] # C3k2 block 16: 256 filters, no shortcut (P3/8-small)
+  
+  - [-1, 1, Conv, [256, 3, 2]] # Convolutional layer 17: 256 filters, 3x3 kernel, stride 2
+  - [[-1, 13], 1, Concat, [1]] # Concatenate layer 18: concatenate with head P4 feature map
+  - [-1, 2, C3k2, [512, False]] # C3k2 block 19: 512 filters, no shortcut (P4/16-medium)
+  
+  - [-1, 1, Conv, [512, 3, 2]] # Convolutional layer 20: 512 filters, 3x3 kernel, stride 2
+  - [[-1, 10], 1, Concat, [1]] # Concatenate layer 21: concatenate with head P5 feature map
+  - [-1, 2, C3k2, [1024, True]] # C3k2 block 22: 1024 filters, shortcut enabled (P5/32-large)
+  
+  - [[16, 19, 22], 1, Detect, [nc]] # Detection layer: process feature maps from P3, P4, P5 for object detection
 """
+
 # YAML 内容作为多行字符串
 yolov11m_config_yaml = """
-# Optimized YOLOv11 object detection model with P3-P5 outputs. Targeting performance improvement without increasing parameters.
-
 # Parameters
-nc: 80  # number of classes
-scales:  # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call yolo11.yaml with scale 'n'
-  # [depth, width, max_channels]
-  n: [0.50, 0.25, 1024]  # YOLOv11n summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
-  s: [0.50, 0.50, 1024]  # YOLOv11s summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
-  m: [0.50, 1.00, 512]  # YOLOv11m summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
-  l: [1.00, 1.00, 512]  # YOLOv11l summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
-  x: [1.00, 1.50, 512]  # YOLOv11x summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
-
-# YOLOv11n backbone
+nc: 80 # Number of classes the model is trained to detect.
+scales: # model compound scaling constants, i.e. 'model=yolov11n.yaml' will call yolov11.yaml with scale 'n'
+  # [depth, width, max_channels] The depth, width and max_channels values should not be adjusted. 
+  m: [0.50, 1.00, 512] #  YOLOv11m summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
+  
+# YOLO11n Backbone
 backbone:
-  # [from, repeats, module, args]
-  - [-1, 1, Conv, [64, 3, 2]]  # 0-P1/2， 第0层，Conv模块，输入为原始图像(640x640x3)，卷积参数：输出通道数为64，卷积核大小为3x3，步长为2。
-  - [-1, 1, Conv, [128, 3, 2]]  # 1-P2/4， 第1层，Conv模块，输入为上一层输出，输出通道数为128，卷积核大小为3x3，步长为2。
-  - [-1, 2, C2f, [128, True]]  # 2， 第2层，C2f模块，重复2次，输出通道数为128，带有shortcut连接。
-  - [-1, 1, Conv, [256, 3, 2]]  # 3-P3/8， 第3层，Conv模块，输入为上一层输出，输出通道数为256，卷积核大小为3x3，步长为2。
-  - [-1, 4, C2f, [256, True]]  # 4，  第4层，C2f模块，重复4次，输出通道数为256，带有shortcut连接。
-  - [-1, 1, Conv, [512, 3, 2]]  # 5-P4/16， 第5层，Conv模块，输入为上一层输出，输出通道数为512，卷积核大小为3x3，步长为2。
-  - [-1, 6, C2f, [512, True]]  # 6 ， 第6层，C2f模块，重复6次，输出通道数为512，带有shortcut连接。
-  - [-1, 1, Conv, [1024, 3, 2]]  # 7-P5/32， 第7层，Conv模块，输入为上一层输出，输出通道数为1024，卷积核大小为3x3，步长为2。
-  - [-1, 3, C2f, [1024, True]]  # 8， 第8层，C2f模块，重复3次，输出通道数为1024，带有shortcut连接。
-  - [-1, 1, SPPF, [1024, 5]]  # 9， 第9层，SPPF模块（快速空间金字塔池化层），输出通道数为1024，池化核大小为5。
+  # [from, repeats, module, args] # Each entry defines a layer in the backbone, specifying the source layer(s), number of repeats, module type, and arguments.
+  - [-1, 1, Conv, [64, 3, 2]] # Convolutional layer 0: 64 filters, 3x3 kernel, stride 2 (P1/2)
+  - [-1, 1, Conv, [128, 3, 2]] # Convolutional layer 1: 128 filters, 3x3 kernel, stride 2 (P2/4)
+  - [-1, 2, C3k2, [256, False, 0.25]] # C3k2 block 2: 256 filters, no shortcut, expansion ratio 0.25
+  - [-1, 1, Conv, [256, 3, 2]] # Convolutional layer 3: 256 filters, 3x3 kernel, stride 2 (P3/8)
+  - [-1, 2, C3k2, [512, False, 0.25]] # C3k2 block 4: 512 filters, no shortcut, expansion ratio 0.25
+  - [-1, 1, Conv, [512, 3, 2]] # Convolutional layer 5: 512 filters, 3x3 kernel, stride 2 (P4/16)
+  - [-1, 2, C3k2, [512, True]] # C3k2 block 6: 512 filters, shortcut enabled
+  - [-1, 1, Conv, [1024, 3, 2]] # Convolutional layer 7: 1024 filters, 3x3 kernel, stride 2 (P5/32)
+  - [-1, 2, C3k2, [1024, True]] # C3k2 block 8: 1024 filters, shortcut enabled
+  - [-1, 1, SPPF, [1024, 5]] # Spatial Pyramid Pooling Fixed block 9: 1024 filters, kernel size 5
+  - [-1, 2, C2PSA, [1024]] # C2PSA block 10: 1024 filters
 
-# YOLOv11n head
+# YOLO11n Head
 head:
-  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 10， 第10层，上采样层，输入为上一层输出，scale_factor=2，mode=nearest。
-  - [[-1, 6], 1, Concat, [1]]  # 11-cat backbone P4， 第11层，Concat模块，将第10层和第6层的输出按通道拼接。
-  - [-1, 3, C2f, [512]]  # 12， 第12层，C2f模块，重复3次，输出通道数为512，shortcut关闭。
-  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 13，第13层，上采样层，scale_factor=2，mode=nearest。
-  - [[-1, 4], 1, Concat, [1]]  # 14-cat backbone P3， 第14层，Concat模块，将第13层和第4层的输出按通道拼接。
-  - [-1, 3, C2f, [256]]  # 15-P3/8 (small) 第15层，C2f模块，重复3次，输出通道数为256，shortcut关闭。
-  - [-1, 1, Conv, [256, 3, 2]]  # 16  第16层，Conv模块，步长为2。
-  - [[-1, 12], 1, Concat, [1]]  # 17-cat head P4，第17层，Concat模块，将第16层和第12层的输出按通道拼接。
-  - [-1, 3, C2f, [512]]  # 18-P4/16 (medium) ，第18层，C2f模块，重复3次，输出通道数为512，shortcut关闭。
-  - [-1, 1, Conv, [512, 3, 2]]  # 19  第19层，Conv模块，步长为2。
-  - [[-1, 9], 1, Concat, [1]]  # 20-cat head P5 ，第20层，Concat模块，将第19层和第9层的输出按通道拼接。
-  - [-1, 3, C2f, [1024]]  # 21-P5/32 (large) ，第21层，C2f模块，重复3次，输出通道数为1024，shortcut关闭。
-  - [[15, 18, 21], 1, Detect, [nc]]  # 22-Detect(P3, P4, P5) ，第22层，Detect模块，输入为第15层（P3）、第18层（P4）和第21层（P5）的输出。
+  # The head section processes the features extracted by the backbone for object detection.
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # Upsample layer 11: scale factor 2, nearest neighbor interpolation
+  - [[-1, 6], 1, Concat, [1]] # Concatenate layer 12: concatenate with backbone P4 feature map
+  - [-1, 2, C3k2, [512, False]] # C3k2 block 13: 512 filters, no shortcut
+  
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # Upsample layer 14: scale factor 2, nearest neighbor interpolation
+  - [[-1, 4], 1, Concat, [1]] # Concatenate layer 15: concatenate with backbone P3 feature map
+  - [-1, 2, C3k2, [256, False]] # C3k2 block 16: 256 filters, no shortcut (P3/8-small)
+  
+  - [-1, 1, Conv, [256, 3, 2]] # Convolutional layer 17: 256 filters, 3x3 kernel, stride 2
+  - [[-1, 13], 1, Concat, [1]] # Concatenate layer 18: concatenate with head P4 feature map
+  - [-1, 2, C3k2, [512, False]] # C3k2 block 19: 512 filters, no shortcut (P4/16-medium)
+  
+  - [-1, 1, Conv, [512, 3, 2]] # Convolutional layer 20: 512 filters, 3x3 kernel, stride 2
+  - [[-1, 10], 1, Concat, [1]] # Concatenate layer 21: concatenate with head P5 feature map
+  - [-1, 2, C3k2, [1024, True]] # C3k2 block 22: 1024 filters, shortcut enabled (P5/32-large)
+  
+  - [[16, 19, 22], 1, Detect, [nc]] # Detection layer: process feature maps from P3, P4, P5 for object detection
 """
+
 # YAML 内容作为多行字符串
 yolov11l_config_yaml = """
-# Optimized YOLOv11 object detection model with P3-P5 outputs. Targeting performance improvement without increasing parameters.
-
 # Parameters
-nc: 80  # number of classes
-scales:  # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call yolo11.yaml with scale 'n'
-  # [depth, width, max_channels]
-  n: [0.50, 0.25, 1024]  # YOLOv11n summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
-  s: [0.50, 0.50, 1024]  # YOLOv11s summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
-  m: [0.50, 1.00, 512]  # YOLOv11m summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
-  l: [1.00, 1.00, 512]  # YOLOv11l summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
-  x: [1.00, 1.50, 512]  # YOLOv11x summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
-
-# YOLOv11n backbone
+nc: 80 # Number of classes the model is trained to detect.
+scales: # model compound scaling constants, i.e. 'model=yolov11n.yaml' will call yolov11.yaml with scale 'n'
+  # [depth, width, max_channels], max_channels is best not adjusted.
+  l: [1.00, 1.00, 512] #  YOLOv11l summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
+  
+# YOLO11n Backbone
 backbone:
-  # [from, repeats, module, args]
-  - [-1, 1, Conv, [64, 3, 2]]  # 0-P1/2， 第0层，Conv模块，输入为原始图像(640x640x3)，卷积参数：输出通道数为64，卷积核大小为3x3，步长为2。
-  - [-1, 1, Conv, [128, 3, 2]]  # 1-P2/4， 第1层，Conv模块，输入为上一层输出，输出通道数为128，卷积核大小为3x3，步长为2。
-  - [-1, 2, C2f, [128, True]]  # 2， 第2层，C2f模块，重复2次，输出通道数为128，带有shortcut连接。
-  - [-1, 1, Conv, [256, 3, 2]]  # 3-P3/8， 第3层，Conv模块，输入为上一层输出，输出通道数为256，卷积核大小为3x3，步长为2。
-  - [-1, 4, C2f, [256, True]]  # 4，  第4层，C2f模块，重复4次，输出通道数为256，带有shortcut连接。
-  - [-1, 1, Conv, [512, 3, 2]]  # 5-P4/16， 第5层，Conv模块，输入为上一层输出，输出通道数为512，卷积核大小为3x3，步长为2。
-  - [-1, 6, C2f, [512, True]]  # 6 ， 第6层，C2f模块，重复6次，输出通道数为512，带有shortcut连接。
-  - [-1, 1, Conv, [1024, 3, 2]]  # 7-P5/32， 第7层，Conv模块，输入为上一层输出，输出通道数为1024，卷积核大小为3x3，步长为2。
-  - [-1, 3, C2f, [1024, True]]  # 8， 第8层，C2f模块，重复3次，输出通道数为1024，带有shortcut连接。
-  - [-1, 1, SPPF, [1024, 5]]  # 9， 第9层，SPPF模块（快速空间金字塔池化层），输出通道数为1024，池化核大小为5。
+  # [from, repeats, module, args] # Each entry defines a layer in the backbone, specifying the source layer(s), number of repeats, module type, and arguments.
+  - [-1, 1, Conv, [64, 3, 2]] # Convolutional layer 0: 64 filters, 3x3 kernel, stride 2 (P1/2)
+  - [-1, 1, Conv, [128, 3, 2]] # Convolutional layer 1: 128 filters, 3x3 kernel, stride 2 (P2/4)
+  - [-1, 2, C3k2, [256, False, 0.25]] # C3k2 block 2: 256 filters, no shortcut, expansion ratio 0.25
+  - [-1, 1, Conv, [256, 3, 2]] # Convolutional layer 3: 256 filters, 3x3 kernel, stride 2 (P3/8)
+  - [-1, 2, C3k2, [512, False, 0.25]] # C3k2 block 4: 512 filters, no shortcut, expansion ratio 0.25
+  - [-1, 1, Conv, [512, 3, 2]] # Convolutional layer 5: 512 filters, 3x3 kernel, stride 2 (P4/16)
+  - [-1, 2, C3k2, [512, True]] # C3k2 block 6: 512 filters, shortcut enabled
+  - [-1, 1, Conv, [1024, 3, 2]] # Convolutional layer 7: 1024 filters, 3x3 kernel, stride 2 (P5/32)
+  - [-1, 2, C3k2, [1024, True]] # C3k2 block 8: 1024 filters, shortcut enabled
+  - [-1, 1, SPPF, [1024, 5]] # Spatial Pyramid Pooling Fixed block 9: 1024 filters, kernel size 5
+  - [-1, 2, C2PSA, [1024]] # C2PSA block 10: 1024 filters
 
-# YOLOv11n head
+# YOLO11n Head
 head:
-  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 10， 第10层，上采样层，输入为上一层输出，scale_factor=2，mode=nearest。
-  - [[-1, 6], 1, Concat, [1]]  # 11-cat backbone P4， 第11层，Concat模块，将第10层和第6层的输出按通道拼接。
-  - [-1, 3, C2f, [512]]  # 12， 第12层，C2f模块，重复3次，输出通道数为512，shortcut关闭。
-  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 13，第13层，上采样层，scale_factor=2，mode=nearest。
-  - [[-1, 4], 1, Concat, [1]]  # 14-cat backbone P3， 第14层，Concat模块，将第13层和第4层的输出按通道拼接。
-  - [-1, 3, C2f, [256]]  # 15-P3/8 (small) 第15层，C2f模块，重复3次，输出通道数为256，shortcut关闭。
-  - [-1, 1, Conv, [256, 3, 2]]  # 16  第16层，Conv模块，步长为2。
-  - [[-1, 12], 1, Concat, [1]]  # 17-cat head P4，第17层，Concat模块，将第16层和第12层的输出按通道拼接。
-  - [-1, 3, C2f, [512]]  # 18-P4/16 (medium) ，第18层，C2f模块，重复3次，输出通道数为512，shortcut关闭。
-  - [-1, 1, Conv, [512, 3, 2]]  # 19  第19层，Conv模块，步长为2。
-  - [[-1, 9], 1, Concat, [1]]  # 20-cat head P5 ，第20层，Concat模块，将第19层和第9层的输出按通道拼接。
-  - [-1, 3, C2f, [1024]]  # 21-P5/32 (large) ，第21层，C2f模块，重复3次，输出通道数为1024，shortcut关闭。
-  - [[15, 18, 21], 1, Detect, [nc]]  # 22-Detect(P3, P4, P5) ，第22层，Detect模块，输入为第15层（P3）、第18层（P4）和第21层（P5）的输出。
+  # The head section processes the features extracted by the backbone for object detection.
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # Upsample layer 11: scale factor 2, nearest neighbor interpolation
+  - [[-1, 6], 1, Concat, [1]] # Concatenate layer 12: concatenate with backbone P4 feature map
+  - [-1, 2, C3k2, [512, False]] # C3k2 block 13: 512 filters, no shortcut
+  
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # Upsample layer 14: scale factor 2, nearest neighbor interpolation
+  - [[-1, 4], 1, Concat, [1]] # Concatenate layer 15: concatenate with backbone P3 feature map
+  - [-1, 2, C3k2, [256, False]] # C3k2 block 16: 256 filters, no shortcut (P3/8-small)
+  
+  - [-1, 1, Conv, [256, 3, 2]] # Convolutional layer 17: 256 filters, 3x3 kernel, stride 2
+  - [[-1, 13], 1, Concat, [1]] # Concatenate layer 18: concatenate with head P4 feature map
+  - [-1, 2, C3k2, [512, False]] # C3k2 block 19: 512 filters, no shortcut (P4/16-medium)
+  
+  - [-1, 1, Conv, [512, 3, 2]] # Convolutional layer 20: 512 filters, 3x3 kernel, stride 2
+  - [[-1, 10], 1, Concat, [1]] # Concatenate layer 21: concatenate with head P5 feature map
+  - [-1, 2, C3k2, [1024, True]] # C3k2 block 22: 1024 filters, shortcut enabled (P5/32-large)
+  
+  - [[16, 19, 22], 1, Detect, [nc]] # Detection layer: process feature maps from P3, P4, P5 for object detection
 """
-# YAML 内容作为多行字符串
+
 yolov11x_config_yaml = """
-# Optimized YOLOv11 object detection model with P3-P5 outputs. Targeting performance improvement without increasing parameters.
-
 # Parameters
-nc: 80  # number of classes
-scales:  # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call yolo11.yaml with scale 'n'
-  # [depth, width, max_channels]
-  n: [0.50, 0.25, 1024]  # YOLOv11n summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
-  s: [0.50, 0.50, 1024]  # YOLOv11s summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
-  m: [0.50, 1.00, 512]  # YOLOv11m summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
-  l: [1.00, 1.00, 512]  # YOLOv11l summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
-  x: [1.00, 1.50, 512]  # YOLOv11x summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
-
-# YOLOv11n backbone
+nc: 80 # Number of classes the model is trained to detect.
+scales: # model compound scaling constants, i.e. 'model=yolov11n.yaml' will call yolov11.yaml with scale 'n'
+  # [depth, width, max_channels], max_channels is best not adjusted.
+  x: [1.00, 1.50, 512] # YOLOv11x summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
+  
+# YOLO11n Backbone
 backbone:
-  # [from, repeats, module, args]
-  - [-1, 1, Conv, [64, 3, 2]]  # 0-P1/2， 第0层，Conv模块，输入为原始图像(640x640x3)，卷积参数：输出通道数为64，卷积核大小为3x3，步长为2。
-  - [-1, 1, Conv, [128, 3, 2]]  # 1-P2/4， 第1层，Conv模块，输入为上一层输出，输出通道数为128，卷积核大小为3x3，步长为2。
-  - [-1, 2, C2f, [128, True]]  # 2， 第2层，C2f模块，重复2次，输出通道数为128，带有shortcut连接。
-  - [-1, 1, Conv, [256, 3, 2]]  # 3-P3/8， 第3层，Conv模块，输入为上一层输出，输出通道数为256，卷积核大小为3x3，步长为2。
-  - [-1, 4, C2f, [256, True]]  # 4，  第4层，C2f模块，重复4次，输出通道数为256，带有shortcut连接。
-  - [-1, 1, Conv, [512, 3, 2]]  # 5-P4/16， 第5层，Conv模块，输入为上一层输出，输出通道数为512，卷积核大小为3x3，步长为2。
-  - [-1, 6, C2f, [512, True]]  # 6 ， 第6层，C2f模块，重复6次，输出通道数为512，带有shortcut连接。
-  - [-1, 1, Conv, [1024, 3, 2]]  # 7-P5/32， 第7层，Conv模块，输入为上一层输出，输出通道数为1024，卷积核大小为3x3，步长为2。
-  - [-1, 3, C2f, [1024, True]]  # 8， 第8层，C2f模块，重复3次，输出通道数为1024，带有shortcut连接。
-  - [-1, 1, SPPF, [1024, 5]]  # 9， 第9层，SPPF模块（快速空间金字塔池化层），输出通道数为1024，池化核大小为5。
+  # [from, repeats, module, args] # Each entry defines a layer in the backbone, specifying the source layer(s), number of repeats, module type, and arguments.
+  - [-1, 1, Conv, [64, 3, 2]] # Convolutional layer 0: 64 filters, 3x3 kernel, stride 2 (P1/2)
+  - [-1, 1, Conv, [128, 3, 2]] # Convolutional layer 1: 128 filters, 3x3 kernel, stride 2 (P2/4)
+  - [-1, 2, C3k2, [256, False, 0.25]] # C3k2 block 2: 256 filters, no shortcut, expansion ratio 0.25
+  - [-1, 1, Conv, [256, 3, 2]] # Convolutional layer 3: 256 filters, 3x3 kernel, stride 2 (P3/8)
+  - [-1, 2, C3k2, [512, False, 0.25]] # C3k2 block 4: 512 filters, no shortcut, expansion ratio 0.25
+  - [-1, 1, Conv, [512, 3, 2]] # Convolutional layer 5: 512 filters, 3x3 kernel, stride 2 (P4/16)
+  - [-1, 2, C3k2, [512, True]] # C3k2 block 6: 512 filters, shortcut enabled
+  - [-1, 1, Conv, [1024, 3, 2]] # Convolutional layer 7: 1024 filters, 3x3 kernel, stride 2 (P5/32)
+  - [-1, 2, C3k2, [1024, True]] # C3k2 block 8: 1024 filters, shortcut enabled
+  - [-1, 1, SPPF, [1024, 5]] # Spatial Pyramid Pooling Fixed block 9: 1024 filters, kernel size 5
+  - [-1, 2, C2PSA, [1024]] # C2PSA block 10: 1024 filters
 
-# YOLOv11n head
+# YOLO11n Head
 head:
-  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 10， 第10层，上采样层，输入为上一层输出，scale_factor=2，mode=nearest。
-  - [[-1, 6], 1, Concat, [1]]  # 11-cat backbone P4， 第11层，Concat模块，将第10层和第6层的输出按通道拼接。
-  - [-1, 3, C2f, [512]]  # 12， 第12层，C2f模块，重复3次，输出通道数为512，shortcut关闭。
-  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 13，第13层，上采样层，scale_factor=2，mode=nearest。
-  - [[-1, 4], 1, Concat, [1]]  # 14-cat backbone P3， 第14层，Concat模块，将第13层和第4层的输出按通道拼接。
-  - [-1, 3, C2f, [256]]  # 15-P3/8 (small) 第15层，C2f模块，重复3次，输出通道数为256，shortcut关闭。
-  - [-1, 1, Conv, [256, 3, 2]]  # 16  第16层，Conv模块，步长为2。
-  - [[-1, 12], 1, Concat, [1]]  # 17-cat head P4，第17层，Concat模块，将第16层和第12层的输出按通道拼接。
-  - [-1, 3, C2f, [512]]  # 18-P4/16 (medium) ，第18层，C2f模块，重复3次，输出通道数为512，shortcut关闭。
-  - [-1, 1, Conv, [512, 3, 2]]  # 19  第19层，Conv模块，步长为2。
-  - [[-1, 9], 1, Concat, [1]]  # 20-cat head P5 ，第20层，Concat模块，将第19层和第9层的输出按通道拼接。
-  - [-1, 3, C2f, [1024]]  # 21-P5/32 (large) ，第21层，C2f模块，重复3次，输出通道数为1024，shortcut关闭。
-  - [[15, 18, 21], 1, Detect, [nc]]  # 22-Detect(P3, P4, P5) ，第22层，Detect模块，输入为第15层（P3）、第18层（P4）和第21层（P5）的输出。
+  # The head section processes the features extracted by the backbone for object detection.
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # Upsample layer 11: scale factor 2, nearest neighbor interpolation
+  - [[-1, 6], 1, Concat, [1]] # Concatenate layer 12: concatenate with backbone P4 feature map
+  - [-1, 2, C3k2, [512, False]] # C3k2 block 13: 512 filters, no shortcut
+  
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # Upsample layer 14: scale factor 2, nearest neighbor interpolation
+  - [[-1, 4], 1, Concat, [1]] # Concatenate layer 15: concatenate with backbone P3 feature map
+  - [-1, 2, C3k2, [256, False]] # C3k2 block 16: 256 filters, no shortcut (P3/8-small)
+  
+  - [-1, 1, Conv, [256, 3, 2]] # Convolutional layer 17: 256 filters, 3x3 kernel, stride 2
+  - [[-1, 13], 1, Concat, [1]] # Concatenate layer 18: concatenate with head P4 feature map
+  - [-1, 2, C3k2, [512, False]] # C3k2 block 19: 512 filters, no shortcut (P4/16-medium)
+  
+  - [-1, 1, Conv, [512, 3, 2]] # Convolutional layer 20: 512 filters, 3x3 kernel, stride 2
+  - [[-1, 10], 1, Concat, [1]] # Concatenate layer 21: concatenate with head P5 feature map
+  - [-1, 2, C3k2, [1024, True]] # C3k2 block 22: 1024 filters, shortcut enabled (P5/32-large)
+  
+  - [[16, 19, 22], 1, Detect, [nc]] # Detection layer: process feature maps from P3, P4, P5 for object detection
 """
+
 
 modules = '''[ 'Bottleneck', 'C2f', 'C2fCIB', 'C3', 'C3k2', 'C3Ghost', 'Conv', 'GhostConv', 'SCDown', 'PSA', 'SPPF', 'C2PSA']
 '''
@@ -239,7 +245,7 @@ GhostConv: - [-1, 1, GhostConv, [128, 3, 2]]
 PSA: - [-1, 1, PSA, [1024]]
 SCDown: - [-1, 1, SCDown, [512, 3, 2]]
 SPPF: - [-1, 1, SPPF, [1024, 5]]
-C2PSA - [-1, 2, C2PSA, [1024]] # 10
+C2PSA - [-1, 2, C2PSA, [1024]]
 '''
 
 

@@ -48,6 +48,7 @@ head:
  
   - [[15, 18, 21], 1, Detect, [nc]]  # Detect(P3, P4, P5) 第20层，本层是Detect层，[15, 18, 21]代表将第15、18、21层的输出（分别是80*80*256、40*40*512、20*20*1024）作为本层的输入。nc是数据集的类别数。
 """
+
 # YAML 内容作为多行字符串
 yolov8s_config_yaml = """
 # Optimized YOLOv8 object detection model with P3-P5 outputs. Targeting performance improvement without increasing parameters.

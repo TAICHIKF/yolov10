@@ -431,7 +431,7 @@ if __name__ == "__main__":
     args = parse_cmd_options(sys.argv)
 
     # Load YOLOv8 model
-    # yolo_model = YOLO('yolov8n.yaml', verbose=False) # 
+    yolo_model = YOLO('/home/kongfei/code/yolov10/train_val/cfg_llm/models/v11_Poe_20_m/yolov11plus1.yaml', verbose=False) # 
     # v2: n-7.963; s-7.841; m-9.048; l-
     # v3: n-6.304;
     '''
@@ -451,7 +451,7 @@ if __name__ == "__main__":
     # yolo_model = YOLO('yolov8s.pt') # 98.81; zen-score=98.81, multi_score=97.7806,
     # yolo_model = YOLO('yolov8m.pt')  # 147.7; zen-score=147.7, multi_score=146.7284
     # yolo_model = YOLO('yolov8l.pt') # 209.1; zen-score=209.1, multi_score=208.6524, 
-    yolo_model = YOLO('yolov8x.pt') # 203.5; zen-score=203.5, multi_score=204.0363,
+    # yolo_model = YOLO('yolov8x.pt') # 203.5; zen-score=203.5, multi_score=204.0363,
     model = yolo_model.model  # Extract the core model
     
     if args.gpu is not None:
@@ -459,7 +459,7 @@ if __name__ == "__main__":
 
     # Compute NAS score
     start_timer = time.time()
-    info = compute_nas_score_yolov8_v4(
+    info = compute_nas_score_yolov8(
         gpu=args.gpu,
         model=model,
         mixup_gamma=0.1,
