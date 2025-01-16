@@ -3,14 +3,13 @@
 '''
 yolo detect train data=coco.yaml model=yolov10n/s/m/b/l/x.yaml epochs=500 batch=256 imgsz=640 device=0,1,2,3,4,5,6,7
 yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0,1,2,3'
-ps aux | grep anaconda3/envs/yolo | grep -v grep | awk '{print $2}' | xargs kill -9
 yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0 resume model=r'D:\code\yolov10\runs\detect\train\weights\last.pt'
+ps aux | grep anaconda3/envs/yolo | grep -v grep | awk '{print $2}' | xargs kill -9
 '''
 
 import os
 import yaml
 import json
-# import shutil
 from datetime import datetime
 from ultralytics import YOLO
 # from LLM.llm_generate import generate_new_structure_using_llm
@@ -21,10 +20,10 @@ from data_utils.data_process import num_percent, save_model_info, get_max, clear
 from data_utils.extract_scales import extract_parameters
 #-----------------------------------------------------------------
 
-yolov8_model = 1 # True
+yolo_model = 1  # True, 是否训练baseline模型（v8 & v11）
 
 version = 'v11'
-scale = 'm' # n s m l x
+scale = 'x' # n s m l x
 more_modules = 0 # llm生成架构时，更改模块类型则为1
 Train_flag = 0  # 如果测试llm生成架构时，值为0，训练时为1
 
@@ -40,11 +39,11 @@ coco_dir = '/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco' # a04 - u404
 
 # Define the scales dictionary
 YOLOv11_scales = {
-  "n": [0.50, 0.25, 1024], # summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
-  "s": [0.50, 0.50, 1024], # summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
-  "m": [0.50, 1.00, 512], # summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
-  "l": [1.00, 1.00, 512], # summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
-  "x": [1.00, 1.50, 512] # summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
+    "n": [0.50, 0.25, 1024], # summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
+    "s": [0.50, 0.50, 1024], # summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
+    "m": [0.50, 1.00, 512], # summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
+    "l": [1.00, 1.00, 512], # summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
+    "x": [1.00, 1.50, 512] # summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
 
 }
 YOLOv8_scales = {
@@ -94,14 +93,14 @@ with open(coco_data, 'w') as file:
     yaml.safe_dump(config, file)
 
 
-if yolov8_model:
-    task_name = 'yolov11n'
+if yolo_model:
+    task_name = f'yolo{version}n'
     model = YOLO(f'{task_name}.yaml', verbose=True)
-    model.train(data=coco_data, epochs=2, imgsz=640, batch=32, device=[2], name=task_name, cache=True, plots=True, pretrained=True,
+    model.train(data=coco_data, epochs=100, imgsz=640, batch=128, device=[2], name=task_name, cache=True, plots=True, pretrained=True,
                 # resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt'
                 )
-    save_dir=fr'.\runs\detect\{task_name}'
-    get_max(fr'{save_dir}\results.csv')
+    save_dir=fr'./runs/detect/{task_name}2'
+    get_max(fr'{save_dir}/results.csv')
     print(f"训练完成: {task_name}")
     del model  # Delete model instance after each iteration
     clear_gpu_memory()  # Clear memory
@@ -178,7 +177,7 @@ else:
                 new_model = YOLO(file_path, verbose=True)
                 
             summary_info = new_model.info(detailed=False, verbose=True)
-            info = compute_nas_score_yolov8(gpu=2, model=new_model.model.cuda(2))
+            info = compute_nas_score_yolov8(gpu=6, model=new_model.model.cuda(6))   # 搜索用做计算分数的gpu id
             zen_score = round(float(info['avg_nas_score']), 4)
             new_yaml_content, parameters, gflops = save_model_info(task_name, file_path, summary_info, zen_score, version,  scale)
             print(f"# max_score_list: {max_score_list}")
@@ -193,10 +192,10 @@ else:
                 with open(score_file, "w") as f: 
                     json.dump(score_dict, f)
                     
-                print("Condition met!")
-                print(f"zen_score: {zen_score}, max_score: {max_score}")
-                print(f"parameters: {parameters}, params['parameters']: {params['parameters']}")
-                print(f"gflops: {gflops}, params['GFLOPs']: {params['GFLOPs']}")
+                print("################  Condition met!  ################")
+                print(f"# zen_score: {zen_score}, max_score: {max_score}")
+                print(f"# parameters: {parameters}, params['parameters']: {params['parameters']}")
+                print(f"# gflops: {gflops}, params['GFLOPs']: {params['GFLOPs']}")
                 
                 max_score = zen_score
                 max_score_list.append(max_score)
@@ -205,7 +204,7 @@ else:
                 best_new_yaml_parameters_list.append(parameters)
                 best_new_yaml_gflops_list.append(gflops)
                     
-            # 添加到 best_arch_list 和 max_score_list 时，同时检查是否已经有 10 个元素
+            # 添加到 best_arch_list 和 max_score_list 时，同时检查是否已经有 3 个元素
             if len(max_score_list) > 3:
                 max_score_list.pop(0)  # 删除最前面的元素
                 best_task_name_list.pop(0)
@@ -246,9 +245,6 @@ else:
         model.train(data=coco_data, epochs=1000, imgsz=640, batch=16, device=[7], project=project_name, name=f'{train_task_name}{scale}', cache=True, plots=True, pretrained=False,
                     # resume=True, model='/home/kongfei/code/yolov10/llmnas_results/yolov8/Poe_20_n_yolov8plus17n2/weights/last.pt'
                     )
-        # model.train(data=coco_data, epochs=1000, imgsz=640, batch=512, device=[0], project='llmnas_yolov8', name=train_task_name, cache=True, plots=True)
-        # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
-
         get_max(fr'{save_dir}/results.csv')
         print(f"训练完成: {best_task_name}{scale}.yaml")
 

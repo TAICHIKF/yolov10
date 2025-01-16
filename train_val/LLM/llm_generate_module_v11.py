@@ -56,7 +56,7 @@ yolov11s_config_yaml = """
 # Parameters
 nc: 80 # Number of classes the model is trained to detect.
 scales: # model compound scaling constants, i.e. 'model=yolov11n.yaml' will call yolov11.yaml with scale 'n'
-  # [depth, width, max_channels], max_channels is best not adjusted.
+  # [depth, width, max_channels] The difference between the depth and width values should not exceed 0.5, max_channels is best not adjusted. 
   s: [0.50, 0.50, 1024] # YOLOv11s summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
   
 # YOLO11n Backbone
@@ -146,7 +146,7 @@ yolov11l_config_yaml = """
 # Parameters
 nc: 80 # Number of classes the model is trained to detect.
 scales: # model compound scaling constants, i.e. 'model=yolov11n.yaml' will call yolov11.yaml with scale 'n'
-  # [depth, width, max_channels], max_channels is best not adjusted.
+  # [depth, width, max_channels] The depth, width and max_channels values should not be adjusted. 
   l: [1.00, 1.00, 512] #  YOLOv11l summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
   
 # YOLO11n Backbone
@@ -190,7 +190,7 @@ yolov11x_config_yaml = """
 # Parameters
 nc: 80 # Number of classes the model is trained to detect.
 scales: # model compound scaling constants, i.e. 'model=yolov11n.yaml' will call yolov11.yaml with scale 'n'
-  # [depth, width, max_channels], max_channels is best not adjusted.
+  # [depth, width, max_channels] The depth, width and max_channels values should not be adjusted. 
   x: [1.00, 1.50, 512] # YOLOv11x summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
   
 # YOLO11n Backbone
@@ -302,7 +302,7 @@ def generate_new_structure_using_llm_v11(scale, api_type, max_score_list, max_sc
         raise ValueError(f"Invalid scale '{scale}'. Please choose from: 'n', 's', 'm', 'l', 'x'.")
 
     user_input = f'''You need to analyze yolov11 to make the newly generated configuration better than yolov11. The configuration file for yolov11 is {yolov11_config_yaml}
-                 You can modify values in scales, repeats in backbone, channel in module, and channel in head. However, it is important to note that repeats no more than 10 times and the modified channel values need to match each other.
+                 You can modify values in repeats in backbone, channel in module, and channel in head. The depth, width and max_channels values should not be adjusted.  However, it is important to note that repeats no more than 10 times and the modified channel values need to match each other.
                  The methods to keep the number of parameters constant are as follows: 0. Only change the types of some modules, but the number of channels between modules must be strict; 1. Increase the number of layers while reducing the number of channels; 2. Increase the number of channels while reducing the number of layers. In short, the parameters, gradients and GFLOPs of the new configuration should not be increased. '''
 
 
