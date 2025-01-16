@@ -16,8 +16,8 @@ def parse_cmd_options(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size.')
     parser.add_argument('--input_image_size', type=int, default=640, help='Input image resolution.')
-    parser.add_argument('--repeat_times', type=int, default=512)
-    parser.add_argument('--gpu', type=int, default=0)
+    parser.add_argument('--repeat_times', type=int, default=32)
+    parser.add_argument('--gpu', type=int, default=6)
     parser.add_argument('--mixup_gamma', type=float, default=1e-2)
     module_opt, _ = parser.parse_known_args(argv)
     return module_opt
@@ -431,7 +431,15 @@ if __name__ == "__main__":
     args = parse_cmd_options(sys.argv)
 
     # Load YOLOv8 model
-    yolo_model = YOLO('/home/kongfei/code/yolov10/train_val/cfg_llm/models/v11_Poe_20_m/yolov11plus1.yaml', verbose=False) # 
+    # yolo_model = YOLO('/home/kongfei/code/yolov10/train_val/cfg_llm/models/yolov11.yaml', verbose=True)  # 
+    yolo_model = YOLO('yolov11x.yaml', verbose=True)  # 
+    
+    # 7.78 n: [0.60, 0.20, 896]  #  YOLOv11n summary: 359 layers, 2051756 parameters, 2051740 gradients, 6.3 GFLOPs
+    # 7.73 s: [0.55, 0.45, 896]  #  YOLOv11s summary: 359 layers, 7817492 parameters, 7817476 gradients, 19.9 GFLOPs
+    # 10.63 m: [0.50, 0.90, 480] #  YOLOv11m summary: 485 layers, 17593064 parameters, 17593048 gradients, 64.6 GFLOPs
+    # 14.16 l: [0.90, 0.90, 480] #  YOLOv11l summary: 707 layers, 21108348 parameters, 21108332 gradients, 77.1 GFLOPs
+    # 14.12 x: [0.90, 1.33, 480] #  YOLOv11x summary: 707 layers, 45333676 parameters, 45333660 gradients, 163.1 GFLOPs
+    
     # v2: n-7.963; s-7.841; m-9.048; l-
     # v3: n-6.304;
     '''
@@ -452,28 +460,30 @@ if __name__ == "__main__":
     # yolo_model = YOLO('yolov8m.pt')  # 147.7; zen-score=147.7, multi_score=146.7284
     # yolo_model = YOLO('yolov8l.pt') # 209.1; zen-score=209.1, multi_score=208.6524, 
     # yolo_model = YOLO('yolov8x.pt') # 203.5; zen-score=203.5, multi_score=204.0363,
-    model = yolo_model.model  # Extract the core model
     
-    if args.gpu is not None:
-        model = model.cuda(args.gpu)
+    
+    # model = yolo_model.model  # Extract the core model
+    
+    # if args.gpu is not None:
+    #     model = model.cuda(args.gpu)
 
-    # Compute NAS score
-    start_timer = time.time()
-    info = compute_nas_score_yolov8(
-        gpu=args.gpu,
-        model=model,
-        mixup_gamma=0.1,
-        resolution=args.input_image_size,
-        batch_size=args.batch_size,
-        repeat=args.repeat_times,
-        fp16=False,
-    )
-    time_cost = (time.time() - start_timer) / args.repeat_times
-    zen_score = info['avg_nas_score']
-    # multi_score = info['avg_multi_scale_nas_score']
-    # final_score =  info['final_score'] # final_score={final_score:.4f}
-    print(info)
-    # print(f'zen-score={zen_score:.4g}, multi_score={multi_score:.4f}, time cost={time_cost:.4g} second(s)')
+    # # Compute NAS score
+    # start_timer = time.time()
+    # info = compute_nas_score_yolov8(
+    #     gpu=args.gpu,
+    #     model=model,
+    #     mixup_gamma=0.1,
+    #     resolution=args.input_image_size,
+    #     batch_size=args.batch_size,
+    #     repeat=args.repeat_times,
+    #     fp16=False,
+    # )
+    # time_cost = (time.time() - start_timer) / args.repeat_times
+    # zen_score = info['avg_nas_score']
+    # # multi_score = info['avg_multi_scale_nas_score']
+    # # final_score =  info['final_score'] # final_score={final_score:.4f}
+    # print(info)
+    # # print(f'zen-score={zen_score:.4g}, multi_score={multi_score:.4f}, time cost={time_cost:.4g} second(s)')
     
     
         

@@ -1,7 +1,7 @@
-# Ultralytics YOLO 🚀, AGPL-3.0 license
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """
-This module provides functionalities for hyperparameter tuning of the Ultralytics YOLO models for object detection,
-instance segmentation, image classification, pose estimation, and multi-object tracking.
+Module provides functionalities for hyperparameter tuning of the Ultralytics YOLO models for object detection, instance
+segmentation, image classification, pose estimation, and multi-object tracking.
 
 Hyperparameter tuning is the process of systematically searching for the optimal set of hyperparameters
 that yield the best model performance. This is particularly crucial in deep learning models like YOLO,
@@ -12,8 +12,8 @@ Example:
     ```python
     from ultralytics import YOLO
 
-    model = YOLO('yolov8n.pt')
-    model.tune(data='coco8.yaml', epochs=10, iterations=300, optimizer='AdamW', plots=False, save=False, val=False)
+    model = YOLO("yolo11n.pt")
+    model.tune(data="coco8.yaml", epochs=10, iterations=300, optimizer="AdamW", plots=False, save=False, val=False)
     ```
 """
 
@@ -54,15 +54,15 @@ class Tuner:
         ```python
         from ultralytics import YOLO
 
-        model = YOLO('yolov8n.pt')
-        model.tune(data='coco8.yaml', epochs=10, iterations=300, optimizer='AdamW', plots=False, save=False, val=False)
+        model = YOLO("yolo11n.pt")
+        model.tune(data="coco8.yaml", epochs=10, iterations=300, optimizer="AdamW", plots=False, save=False, val=False)
         ```
 
         Tune with custom search space.
         ```python
         from ultralytics import YOLO
 
-        model = YOLO('yolov8n.pt')
+        model = YOLO("yolo11n.pt")
         model.tune(space={key1: val1, key2: val2})  # custom search space dictionary
         ```
     """
@@ -140,7 +140,7 @@ class Tuner:
             # Mutate
             r = np.random  # method
             r.seed(int(time.time()))
-            g = np.array([v[2] if len(v) == 3 else 1.0 for k, v in self.space.items()])  # gains 0-1
+            g = np.array([v[2] if len(v) == 3 else 1.0 for v in self.space.values()])  # gains 0-1
             ng = len(self.space)
             v = np.ones(ng)
             while all(v == 1):  # mutate until a change occurs (prevent duplicates)
@@ -176,7 +176,6 @@ class Tuner:
            The method utilizes the `self.tune_csv` Path object to read and log hyperparameters and fitness scores.
            Ensure this path is set correctly in the Tuner instance.
         """
-
         t0 = time.time()
         best_save_dir, best_metrics = None, None
         (self.tune_dir / "weights").mkdir(parents=True, exist_ok=True)
@@ -192,7 +191,7 @@ class Tuner:
             try:
                 # Train YOLO model with mutated hyperparameters (run in subprocess to avoid dataloader hang)
                 cmd = ["yolo", "train", *(f"{k}={v}" for k, v in train_args.items())]
-                return_code = subprocess.run(cmd, check=True).returncode
+                return_code = subprocess.run(" ".join(cmd), check=True, shell=True).returncode
                 ckpt_file = weights_dir / ("best.pt" if (weights_dir / "best.pt").exists() else "last.pt")
                 metrics = torch.load(ckpt_file)["train_metrics"]
                 assert return_code == 0, "training failed"
@@ -218,19 +217,19 @@ class Tuner:
                 for ckpt in weights_dir.glob("*.pt"):
                     shutil.copy2(ckpt, self.tune_dir / "weights")
             elif cleanup:
-                shutil.rmtree(ckpt_file.parent)  # remove iteration weights/ dir to reduce storage space
+                shutil.rmtree(weights_dir, ignore_errors=True)  # remove iteration weights/ dir to reduce storage space
 
             # Plot tune results
             plot_tune_results(self.tune_csv)
 
             # Save and print tune results
             header = (
-                f'{self.prefix}{i + 1}/{iterations} iterations complete ✅ ({time.time() - t0:.2f}s)\n'
-                f'{self.prefix}Results saved to {colorstr("bold", self.tune_dir)}\n'
-                f'{self.prefix}Best fitness={fitness[best_idx]} observed at iteration {best_idx + 1}\n'
-                f'{self.prefix}Best fitness metrics are {best_metrics}\n'
-                f'{self.prefix}Best fitness model is {best_save_dir}\n'
-                f'{self.prefix}Best fitness hyperparameters are printed below.\n'
+                f"{self.prefix}{i + 1}/{iterations} iterations complete ✅ ({time.time() - t0:.2f}s)\n"
+                f"{self.prefix}Results saved to {colorstr('bold', self.tune_dir)}\n"
+                f"{self.prefix}Best fitness={fitness[best_idx]} observed at iteration {best_idx + 1}\n"
+                f"{self.prefix}Best fitness metrics are {best_metrics}\n"
+                f"{self.prefix}Best fitness model is {best_save_dir}\n"
+                f"{self.prefix}Best fitness hyperparameters are printed below.\n"
             )
             LOGGER.info("\n" + header)
             data = {k: float(x[best_idx, i + 1]) for i, k in enumerate(self.space.keys())}

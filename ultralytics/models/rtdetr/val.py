@@ -1,4 +1,4 @@
-# Ultralytics YOLO 🚀, AGPL-3.0 license
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
 import torch
 
@@ -62,7 +62,7 @@ class RTDETRValidator(DetectionValidator):
         ```python
         from ultralytics.models.rtdetr import RTDETRValidator
 
-        args = dict(model='rtdetr-l.pt', data='coco8.yaml')
+        args = dict(model="rtdetr-l.pt", data="coco8.yaml")
         validator = RTDETRValidator(args=args)
         validator()
         ```
@@ -125,7 +125,7 @@ class RTDETRValidator(DetectionValidator):
             bbox = ops.xywh2xyxy(bbox)  # target boxes
             bbox[..., [0, 2]] *= ori_shape[1]  # native-space pred
             bbox[..., [1, 3]] *= ori_shape[0]  # native-space pred
-        return dict(cls=cls, bbox=bbox, ori_shape=ori_shape, imgsz=imgsz, ratio_pad=ratio_pad)
+        return {"cls": cls, "bbox": bbox, "ori_shape": ori_shape, "imgsz": imgsz, "ratio_pad": ratio_pad}
 
     def _prepare_pred(self, pred, pbatch):
         """Prepares and returns a batch with transformed bounding boxes and class labels."""

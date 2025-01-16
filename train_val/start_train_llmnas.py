@@ -21,13 +21,14 @@ from data_utils.data_process import num_percent, save_model_info, get_max, clear
 from data_utils.extract_scales import extract_parameters
 #-----------------------------------------------------------------
 
+yolov8_model = 1 # True
+
 version = 'v11'
-scale = 'n' # n s m l x
+scale = 'm' # n s m l x
 more_modules = 0 # llm生成架构时，更改模块类型则为1
 Train_flag = 0  # 如果测试llm生成架构时，值为0，训练时为1
 
-yolov8_model = 0 # True
-total_iterations = 2 # 假设循环5次
+total_iterations = 20 # 假设循环5次
 
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
@@ -94,10 +95,10 @@ with open(coco_data, 'w') as file:
 
 
 if yolov8_model:
-    task_name = 'yolov8n'
-    model = YOLO(f'{task_name}.yaml')
-    model.train(data=coco_data, epochs=2, imgsz=640, batch=128, device=[0,2], name=task_name, cache=True, plots=True,
-                resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt'
+    task_name = 'yolov11n'
+    model = YOLO(f'{task_name}.yaml', verbose=True)
+    model.train(data=coco_data, epochs=2, imgsz=640, batch=32, device=[2], name=task_name, cache=True, plots=True, pretrained=True,
+                # resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt'
                 )
     save_dir=fr'.\runs\detect\{task_name}'
     get_max(fr'{save_dir}\results.csv')

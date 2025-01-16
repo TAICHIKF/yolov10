@@ -1,4 +1,4 @@
-# Ultralytics YOLO 🚀, AGPL-3.0 license
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
 import torch
 
@@ -20,7 +20,7 @@ class ClassificationValidator(BaseValidator):
         ```python
         from ultralytics.models.yolo.classify import ClassificationValidator
 
-        args = dict(model='yolov8n-cls.pt', data='imagenet10')
+        args = dict(model="yolov8n-cls.pt", data="imagenet10")
         validator = ClassificationValidator(args=args)
         validator()
         ```
@@ -56,8 +56,8 @@ class ClassificationValidator(BaseValidator):
     def update_metrics(self, preds, batch):
         """Updates running metrics with model predictions and batch targets."""
         n5 = min(len(self.names), 5)
-        self.pred.append(preds.argsort(1, descending=True)[:, :n5])
-        self.targets.append(batch["cls"])
+        self.pred.append(preds.argsort(1, descending=True)[:, :n5].type(torch.int32).cpu())
+        self.targets.append(batch["cls"].type(torch.int32).cpu())
 
     def finalize_metrics(self, *args, **kwargs):
         """Finalizes metrics of the model such as confusion_matrix and speed."""
@@ -70,6 +70,10 @@ class ClassificationValidator(BaseValidator):
         self.metrics.speed = self.speed
         self.metrics.confusion_matrix = self.confusion_matrix
         self.metrics.save_dir = self.save_dir
+
+    def postprocess(self, preds):
+        """Preprocesses the classification predictions."""
+        return preds[0] if isinstance(preds, (list, tuple)) else preds
 
     def get_stats(self):
         """Returns a dictionary of metrics obtained by processing targets and predictions."""
