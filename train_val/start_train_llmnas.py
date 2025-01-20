@@ -23,11 +23,11 @@ from data_utils.extract_scales import extract_parameters
 yolo_model = 1  # True, 是否训练baseline模型（v8 & v11）
 
 version = 'v11'
-scale = 'x' # n s m l x
+Train_flag = 1 # 如果测试llm生成架构时，值为0，训练时为1
+scale = 'n' # n s m l x
 more_modules = 0 # llm生成架构时，更改模块类型则为1
-Train_flag = 0  # 如果测试llm生成架构时，值为0，训练时为1
 
-total_iterations = 20 # 假设循环5次
+total_iterations = 30 # 假设循环5次
 
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
@@ -96,10 +96,10 @@ with open(coco_data, 'w') as file:
 if yolo_model:
     task_name = f'yolo{version}n'
     model = YOLO(f'{task_name}.yaml', verbose=True)
-    model.train(data=coco_data, epochs=100, imgsz=640, batch=128, device=[2], name=task_name, cache=True, plots=True, pretrained=True,
+    model.train(data=coco_data, epochs=1000, imgsz=640, batch=128, device=[6,7], name=task_name, cache=True, plots=True, pretrained=True,
                 # resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt'
                 )
-    save_dir=fr'./runs/detect/{task_name}2'
+    save_dir=fr'./runs/detect/{task_name}'
     get_max(fr'{save_dir}/results.csv')
     print(f"训练完成: {task_name}")
     del model  # Delete model instance after each iteration
@@ -177,7 +177,8 @@ else:
                 new_model = YOLO(file_path, verbose=True)
                 
             summary_info = new_model.info(detailed=False, verbose=True)
-            info = compute_nas_score_yolov8(gpu=6, model=new_model.model.cuda(6))   # 搜索用做计算分数的gpu id
+            # 搜索用做计算分数的gpu id
+            info = compute_nas_score_yolov8(gpu=4, model=new_model.model.cuda(4))   
             zen_score = round(float(info['avg_nas_score']), 4)
             new_yaml_content, parameters, gflops = save_model_info(task_name, file_path, summary_info, zen_score, version,  scale)
             print(f"# max_score_list: {max_score_list}")
@@ -205,7 +206,7 @@ else:
                 best_new_yaml_gflops_list.append(gflops)
                     
             # 添加到 best_arch_list 和 max_score_list 时，同时检查是否已经有 3 个元素
-            if len(max_score_list) > 3:
+            if len(max_score_list) > 5:
                 max_score_list.pop(0)  # 删除最前面的元素
                 best_task_name_list.pop(0)
                 best_new_yaml_list.pop(0)  # 删除最前面的元素
@@ -242,10 +243,10 @@ else:
         best_file_path = os.path.join(dir_path, f"{best_task_name}{scale}.yaml")    
         print("# best_file_path:", best_file_path)    
         model = YOLO(best_file_path, verbose=False)
-        model.train(data=coco_data, epochs=1000, imgsz=640, batch=16, device=[7], project=project_name, name=f'{train_task_name}{scale}', cache=True, plots=True, pretrained=False,
+        model.train(data=coco_data, epochs=1000, imgsz=640, batch=128, device=[0,1], project=project_name, name=f'{train_task_name}{scale}', cache=True, plots=True, pretrained=False,
                     # resume=True, model='/home/kongfei/code/yolov10/llmnas_results/yolov8/Poe_20_n_yolov8plus17n2/weights/last.pt'
                     )
-        get_max(fr'{save_dir}/results.csv')
+        get_max(fr'{save_dir}3/results.csv')
         print(f"训练完成: {best_task_name}{scale}.yaml")
 
 

@@ -9,6 +9,7 @@ Usage:
 import gc
 import math
 import os
+import csv
 import subprocess
 import time
 import warnings
@@ -654,14 +655,42 @@ class BaseTrainer:
         """Plots training labels for YOLO model."""
         pass
 
+    # def save_metrics(self, metrics):
+    #     """Saves training metrics to a CSV file."""
+    #     keys, vals = list(metrics.keys()), list(metrics.values())
+    #     n = len(metrics) + 2  # number of cols
+    #     s = "" if self.csv.exists() else (("%s," * n % tuple(["epoch", "time"] + keys)).rstrip(",") + "\n")  # header
+    #     # t = time.time() - self.train_time_start
+    #     t = datetime.now().strftime("%Y-%m-%d %H:%M")
+    #     with open(self.csv, "a") as f:
+    #         f.write(s + ("%.6g," * n % tuple([self.epoch + 1, t] + vals)).rstrip(",") + "\n")
+            
+            
     def save_metrics(self, metrics):
         """Saves training metrics to a CSV file."""
         keys, vals = list(metrics.keys()), list(metrics.values())
         n = len(metrics) + 2  # number of cols
-        s = "" if self.csv.exists() else (("%s," * n % tuple(["epoch", "time"] + keys)).rstrip(",") + "\n")  # header
-        t = time.time() - self.train_time_start
+        header = "" if self.csv.exists() else (("%s," * n % tuple(["epoch", "time"] + keys)).rstrip(",") + "\n")  # header
+        t = datetime.now().strftime("%Y-%m-%d %H:%M")  # formatted time string
         with open(self.csv, "a") as f:
-            f.write(s + ("%.6g," * n % tuple([self.epoch + 1, t] + vals)).rstrip(",") + "\n")
+            # Construct row data
+            row_data = f"{self.epoch + 1},{t}," + (",".join(f"{v:.6g}" for v in vals)) + "\n"
+            if header:  # Write header if needed
+                f.write(header)
+            f.write(row_data)
+
+
+    # def save_metrics(self, metrics):
+    #     current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+    #     # current_time = int(datetime.now().strftime("%Y%m%d%H%M"))
+    #     keys, vals = list(metrics.keys()), list(metrics.values())
+    #     n = len(metrics) + 2
+    #     header_exists = self.csv.exists()
+    #     with open(self.csv, "a", newline='') as f:
+    #         writer = csv.writer(f)
+    #         if not header_exists:
+    #             writer.writerow([ "time"] + ["epoch"] + keys )
+    #         writer.writerow([current_time]+ [self.epoch + 1] + vals)
 
     def plot_metrics(self):
         """Plot and display metrics visually."""

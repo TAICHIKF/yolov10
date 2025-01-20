@@ -231,18 +231,13 @@ head:
 """
 
 
-modules = '''[ 'Bottleneck', 'C2f', 'C2fCIB', 'C3', 'C3k2', 'C3Ghost', 'Conv', 'GhostConv', 'SCDown', 'PSA', 'SPPF', 'C2PSA']
+modules = '''['C3k2', 'C3Ghost', 'Conv', 'GhostConv', 'SCDown', 'SPPF', 'C2PSA']
 '''
 modules_example = '''
-Bottleneck: - [-1, 1, Bottleneck, [64]]
-C2f: - [-1, 3, C2f, [128, True]]
-C2fCIB: - [-1, 3, C2fCIB, [1024, True]]
-C3: - [-1, 3, C3, [128]]
 C3k2: - [-1, 2, C3k2, [1024, True]]
 C3Ghost: - [-1, 6, C3Ghost, [256, True]]
 Conv: - [-1, 1, Conv, [32, 3, 1]]
 GhostConv: - [-1, 1, GhostConv, [128, 3, 2]]
-PSA: - [-1, 1, PSA, [1024]]
 SCDown: - [-1, 1, SCDown, [512, 3, 2]]
 SPPF: - [-1, 1, SPPF, [1024, 5]]
 C2PSA - [-1, 2, C2PSA, [1024]]
@@ -280,7 +275,7 @@ system_content = "You are Quoc V. Le, a computer scientist and artificial intell
 
 '''更复杂一些的生成方式则是替换modul的类型，可选类型有：{modules}, 具体使用示例可参考{modules_example}。在替换module时必须注意的是module之间channel的匹配，特别要注意Concat这个过程，不要把channel匹配错了。如果你对某个modules不了解具体的结构，请不要使用。'''
 
-higher_input = f'''A more complex way to generate modul is to replace the modul type with {modules}, for example {modules_example}. When replacing modules, you must pay attention to the matching of channels between modules. Pay special attention to the Concat process, and do not match the channels incorrectly. If you don't know the structure of modules, don't use them.'''
+higher_input = f'''A more complex way to generate modul is to replace the modul type with {modules}, for example {modules_example}. The C3k2 block is a more computationally efficient implementation of the Cross Stage Partial (CSP) Bottleneck. It employs two smaller convolutions instead of one large convolution. The "k2" in C3k2 indicates a smaller kernel size, which contributes to faster processing while maintaining performance. When replacing modules, you must pay attention to the matching of channels between modules. Pay special attention to the Concat process, and do not match the channels incorrectly. If you don't know the structure of modules, don't use them.'''
 
 suffix = '''Please do not include anything else other than configuration in your response!'''
 
