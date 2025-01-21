@@ -29,7 +29,7 @@ def extract_parameters(scale_key, version='v8'):
         elif scale_key == "s":
             results.update({
                 "layers": 225,
-                "parameters": 10000000,
+                "parameters": 11000000,
                 "gradients":  11166544,
                 "GFLOPs": 28.8
             })
@@ -43,14 +43,14 @@ def extract_parameters(scale_key, version='v8'):
         elif scale_key == "l":
             results.update({
                 "layers": 365,
-                "parameters": 40000000,
+                "parameters": 43000000,
                 "gradients":  43691504,
                 "GFLOPs": 165.7
             })
         elif scale_key == "x":
             results.update({
                 "layers": 365,
-                "parameters": 60000000,
+                "parameters": 65000000,
                 "gradients":  68229632,
                 "GFLOPs": 258.5
             })

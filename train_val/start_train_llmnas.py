@@ -20,12 +20,12 @@ from data_utils.data_process import num_percent, save_model_info, get_max, clear
 from data_utils.extract_scales import extract_parameters
 #-----------------------------------------------------------------
 
-yolo_model = 1  # True, 是否训练baseline模型（v8 & v11）
+yolo_model = 0  # True, 是否训练baseline模型（v8 & v11）
 
-version = 'v11'
-Train_flag = 1 # 如果测试llm生成架构时，值为0，训练时为1
-scale = 'n' # n s m l x
-more_modules = 0 # llm生成架构时，更改模块类型则为1
+version = 'v8'  # v8, v11
+Train_flag = 0 # 如果测试llm生成架构时，值为0，训练时为1
+scale = 'x' # n s m l x
+more_modules = 1 # llm生成架构时，更改模块类型则为1
 
 total_iterations = 30 # 假设循环5次
 
@@ -44,8 +44,8 @@ YOLOv11_scales = {
     "m": [0.50, 1.00, 512], # summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
     "l": [1.00, 1.00, 512], # summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
     "x": [1.00, 1.50, 512] # summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
-
 }
+
 YOLOv8_scales = {
     "n": [0.33, 0.25, 1024],  # YOLOv8n summary: 225 layers,  3157200 parameters,  3157184 gradients,   8.9 GFLOPs
     "s": [0.33, 0.50, 1024],  # YOLOv8s summary: 225 layers, 11166560 parameters, 11166544 gradients,  28.8 GFLOPs
@@ -96,7 +96,7 @@ with open(coco_data, 'w') as file:
 if yolo_model:
     task_name = f'yolo{version}n'
     model = YOLO(f'{task_name}.yaml', verbose=True)
-    model.train(data=coco_data, epochs=1000, imgsz=640, batch=128, device=[6,7], name=task_name, cache=True, plots=True, pretrained=True,
+    model.train(data=coco_data, epochs=1000, imgsz=640, batch=192, device=[6,7], name=task_name, cache=True, plots=True, pretrained=True,
                 # resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt'
                 )
     save_dir=fr'./runs/detect/{task_name}'

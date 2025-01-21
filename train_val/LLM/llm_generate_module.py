@@ -271,7 +271,7 @@ def generate_new_structure_using_llm(scale, api_type, max_score_list, max_score_
         raise ValueError(f"Invalid scale '{scale}'. Please choose from: 'n', 's', 'm', 'l', 'x'.")
 
     user_input = f'''You need to analyze yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}
-                 You can modify values in scales, repeats in backbone, channel in module, and channel in head. However, it is important to note that repeats no more than 10 times and the modified channel values need to match each other.
+                 You can modify values in repeats in backbone, channel in module, and channel in head. The depth, width and max_channels values should not be adjusted. However, it is important to note that repeats no more than 10 times and the modified channel values need to match each other.
                  The methods to keep the number of parameters constant are as follows: 0. Only change the types of some modules, but the number of channels between modules must be strict; 1. Increase the number of layers while reducing the number of channels; 2. Increase the number of channels while reducing the number of layers. In short, the parameters, gradients and GFLOPs of the new configuration should not be increased. '''
 
 
@@ -286,7 +286,7 @@ def generate_new_structure_using_llm(scale, api_type, max_score_list, max_score_
              You can change the specific module order, and the channel value can also change. Sizes of tensors must match except in dimension 1.
              In short, you can generate a new structure according to your own understanding, and the result is better than the original configuration.'''
     
-    Params_prompt = f"Please suggest a better structure that can improve the structure's score results provided above. The parameters of the new configuration should be less than {Parameters}, but more than half of {Parameters}. The GFLOPs of the new configuration should be less than {GFLOPs}."
+    Params_prompt = f"Please suggest a better structure that can improve the structure's score results provided above. The parameters of the new configuration should be less than {Parameters}, but greater than 90% of {Parameters}! The GFLOPs of the new configuration should be less than {GFLOPs}."
         
     if len(max_score_list) > 0:
         experiments_prompt = lambda max_score_yaml_list, max_score_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list : '''Here are some structure's score results that you can use as a reference:
