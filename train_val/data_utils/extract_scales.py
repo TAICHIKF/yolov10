@@ -50,7 +50,7 @@ def extract_parameters(scale_key, version='v8'):
         elif scale_key == "x":
             results.update({
                 "layers": 365,
-                "parameters": 65000000,
+                "parameters": 68000000,
                 "gradients":  68229632,
                 "GFLOPs": 258.5
             })

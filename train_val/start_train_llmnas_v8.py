@@ -23,11 +23,11 @@ from data_utils.extract_scales import extract_parameters
 yolo_model = 0  # True, 是否训练baseline模型（v8 & v11）
 
 version = 'v8'  # v8, v11
-Train_flag = 0 # 如果测试llm生成架构时，值为0，训练时为1
-scale = 'x' # n s m l x
-more_modules = 1 # llm生成架构时，更改模块类型则为1
+Train_flag = 1 # 如果测试llm生成架构时，值为0，训练时为1
+scale = 'l' # n s m l x
+more_modules = 0 # llm生成架构时，更改模块类型则为1
 
-total_iterations = 30 # 假设循环5次
+total_iterations = 20 # 假设循环5次
 
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
@@ -96,11 +96,11 @@ with open(coco_data, 'w') as file:
 if yolo_model:
     task_name = f'yolo{version}n'
     model = YOLO(f'{task_name}.yaml', verbose=True)
-    model.train(data=coco_data, epochs=1000, imgsz=640, batch=192, device=[6,7], name=task_name, cache=True, plots=True, pretrained=True,
-                # resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt'
+    model.train(data=coco_data, epochs=520, imgsz=640, batch=192, device=[0,1], name=task_name, cache=True, plots=True, pretrained=True,
+                resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov11n/weights/last.pt'
                 )
     save_dir=fr'./runs/detect/{task_name}'
-    get_max(fr'{save_dir}/results.csv')
+    get_max(fr'{save_dir}2/results.csv')
     print(f"训练完成: {task_name}")
     del model  # Delete model instance after each iteration
     clear_gpu_memory()  # Clear memory
@@ -113,6 +113,7 @@ else:
     max_score_list = []
     best_task_name_list = []
     best_new_yaml_list = []
+    best_new_yaml_layers_list = []
     best_new_yaml_parameters_list = []
     best_new_yaml_gflops_list = []
     
@@ -148,9 +149,9 @@ else:
             try:
                 # 调用 LLM API 生成新的网络结构
                 if version == 'v8':
-                    new_structure = generate_new_structure_using_llm(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
+                    new_structure = generate_new_structure_using_llm(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
                 elif version == 'v11':
-                    new_structure = generate_new_structure_using_llm_v11(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
+                    new_structure = generate_new_structure_using_llm_v11(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
                     
                 # print(f"生成的新结构: {new_structure}")
                 # 将新结构写入 YAML 文件
@@ -166,9 +167,9 @@ else:
                 print("重新生成网络结构...")
                 # 如果报错，重新生成结构
                 if version == 'v8':
-                    new_structure = generate_new_structure_using_llm(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
+                    new_structure = generate_new_structure_using_llm(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
                 elif version == 'v11':
-                    new_structure = generate_new_structure_using_llm_v11(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
+                    new_structure = generate_new_structure_using_llm_v11(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
                     
                 # 将新结构写入 YAML 文件
                 with open(file_path, "w") as file:
@@ -180,13 +181,15 @@ else:
             # 搜索用做计算分数的gpu id
             info = compute_nas_score_yolov8(gpu=4, model=new_model.model.cuda(4))   
             zen_score = round(float(info['avg_nas_score']), 4)
-            new_yaml_content, parameters, gflops = save_model_info(task_name, file_path, summary_info, zen_score, version,  scale)
+            new_yaml_content, layers, parameters, gflops = save_model_info(task_name, file_path, summary_info, zen_score, version,  scale)
             print(f"# max_score_list: {max_score_list}")
+            print(f"# layers_list: {best_new_yaml_layers_list}")
             print(f"# parameters_list: {best_new_yaml_parameters_list}")
             print(f"# gflops_list: {best_new_yaml_gflops_list}")
-            print(f"# {task_name}--{zen_score} score, {parameters} parameters, {gflops} gflops")
+            print(f"# {task_name}--{layers} layers, {zen_score} score, {parameters} parameters, {gflops} gflops")
 
-            if zen_score > max_score and parameters < params['parameters'] and gflops < params['GFLOPs']:
+            # 判断生成的架构是否符合约束条件
+            if zen_score > max_score and layers < params['layers']*2 and parameters < params['parameters'] and gflops < params['GFLOPs']:
                 # 保存 task_name 和 zen_score 到字典
                 score_dict[task_name] = zen_score
                 # 将字典保存到文件
@@ -194,6 +197,7 @@ else:
                     json.dump(score_dict, f)
                     
                 print("################  Condition met!  ################")
+                print(f"# layers: {layers}, max layers: {params['layers'] * 2}")
                 print(f"# zen_score: {zen_score}, max_score: {max_score}")
                 print(f"# parameters: {parameters}, params['parameters']: {params['parameters']}")
                 print(f"# gflops: {gflops}, params['GFLOPs']: {params['GFLOPs']}")
@@ -202,6 +206,7 @@ else:
                 max_score_list.append(max_score)
                 best_task_name_list.append(task_name)
                 best_new_yaml_list.append(new_yaml_content)
+                best_new_yaml_layers_list.append(layers)
                 best_new_yaml_parameters_list.append(parameters)
                 best_new_yaml_gflops_list.append(gflops)
                     
@@ -210,6 +215,7 @@ else:
                 max_score_list.pop(0)  # 删除最前面的元素
                 best_task_name_list.pop(0)
                 best_new_yaml_list.pop(0)  # 删除最前面的元素
+                best_new_yaml_layers_list.pop(0)  # 删除最前面的元素
                 best_new_yaml_parameters_list.pop(0)  # 删除最前面的元素
                 best_new_yaml_gflops_list.pop(0)  # 删除最前面的元素
             
@@ -234,19 +240,25 @@ else:
         save_dir=fr'./llmnas_results/yolov11/{train_task_name}{scale}'
         project_name = 'llmnas_yolov11' 
     
+                    
+    ###############  指定配置文件，不选择最大得分的配置文件  ################            
+    # best_task_name = 'yolov8plus10'       
+    ########################## 手动选择配置文件  ########################
     
     if os.path.exists(fr'{save_dir}/results.png'):
         print(f"已经训练过，跳过操作: {best_task_name}")
     elif not Train_flag:
          print(f"测试架构生成，暂不执行训练！")
     else:              
+        # 手动选择一个配置文件
         best_file_path = os.path.join(dir_path, f"{best_task_name}{scale}.yaml")    
+        # best_file_path = os.path.join("./train_val/cfg_llm/models_new/v8_Poe_30_m/yolov8plus10.yaml")    
         print("# best_file_path:", best_file_path)    
         model = YOLO(best_file_path, verbose=False)
-        model.train(data=coco_data, epochs=1000, imgsz=640, batch=128, device=[0,1], project=project_name, name=f'{train_task_name}{scale}', cache=True, plots=True, pretrained=False,
+        model.train(data=coco_data, epochs=1000, imgsz=640, batch=128, device=[4,5,6,7], project=project_name, name=f'{train_task_name}{scale}', cache=True, plots=True, pretrained=False,
                     # resume=True, model='/home/kongfei/code/yolov10/llmnas_results/yolov8/Poe_20_n_yolov8plus17n2/weights/last.pt'
                     )
-        get_max(fr'{save_dir}3/results.csv')
+        get_max(fr'{save_dir}/results.csv')
         print(f"训练完成: {best_task_name}{scale}.yaml")
 
 

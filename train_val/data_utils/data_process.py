@@ -168,4 +168,4 @@ def save_model_info(task_name, file_path, summary_info, zen_score, version, scal
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write(new_content)
 
-    return content, parameters, gflops
+    return content, layers, parameters, gflops

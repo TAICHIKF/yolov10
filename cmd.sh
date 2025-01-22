@@ -3,6 +3,9 @@ mv /mnt/WD_44T/kongfei/coco/*.txt  /xmnt/mnt_nfs_qynas_v5/kongfei/coco/
 cp -r /xmnt/mnt_nfs_qynas_v5/kongfei/coco  /mnt/data7T/kongfeidata/data
 scp -r /home/kongfei/code/yolov10/train_val/cfg_llm/model/Poe_10  kongfei@172.22.162.38:/home/kongfei/code/yolov10/train_val/cfg_llm/model
 
+
+scp -r  /home/kongfei/code/yolov10/train_val/cfg_llm/models_new/v8_Poe_30_m  kongfei@172.22.162.38:/home/kongfei/code/yolov10/train_val/cfg_llm/models_new
+
 ssh-keygen -t rsa -b 4096 -C "1282328191@qq.com"
 cat ~/.ssh/id_rsa.pub
 # add ssh key

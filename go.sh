@@ -1,1 +1,1 @@
-python3  train_val/start_train_llmnas.py
+python3  train_val/start_train_llmnas_v8.py

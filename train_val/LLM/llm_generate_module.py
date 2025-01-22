@@ -227,20 +227,19 @@ head:
 """
 
 
-modules = '''[ 'Bottleneck', 'C2f', 'C2fCIB', 'C3', 'C3Ghost', 'Conv', 'GhostConv', 'SCDown', 'PSA', 'SPPF']
-'''
+modules = '''['Conv', 'C2f', 'C3Ghost', 'GhostConv', 'SPPF']'''
+# 'C2fCIB', 'SCDown', 'PSA'
+
 modules_example = '''
-Bottleneck: - [-1, 1, Bottleneck, [64]]
-C2f: - [-1, 3, C2f, [128, True]]
-C2fCIB: - [-1, 3, C2fCIB, [1024, True]]
-C3: - [-1, 3, C3, [128]]
-C3Ghost: - [-1, 6, C3Ghost, [256, True]]
 Conv: - [-1, 1, Conv, [32, 3, 1]]
+C2f: - [-1, 3, C2f, [128, True]]
+C3Ghost: - [-1, 6, C3Ghost, [256, True]]
 GhostConv: - [-1, 1, GhostConv, [128, 3, 2]]
-PSA: - [-1, 1, PSA, [1024]]
-SCDown: - [-1, 1, SCDown, [512, 3, 2]]
 SPPF: - [-1, 1, SPPF, [1024, 5]]
 '''
+# C2fCIB: - [-1, 3, C2fCIB, [1024, True]]
+# SCDown: - [-1, 1, SCDown, [512, 3, 2]]
+# PSA: - [-1, 1, PSA, [1024]]
 
 
 system_content = "You are Quoc V. Le, a computer scientist and artificial intelligence researcher who is widely regarded as one of the leading experts in deep learning and neural network architecture search. Your work in this area has focused on developing efficient algorithms for searching the space of possible neural network architectures, with the goal of finding architectures that perform well on a given task while minimizing the computational cost of training and inference."
@@ -254,7 +253,7 @@ higher_input = f'''A more complex way to generate modul is to replace the modul 
 suffix = '''Please do not include anything else other than configuration in your response!'''
 
 
-def generate_new_structure_using_llm(scale, api_type, max_score_list, max_score_yaml_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules):
+def generate_new_structure_using_llm(scale, api_type, max_score_list, max_score_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules):
     
     # yolov8_config_yaml = get_yaml(scale)
     if scale == 'n':
@@ -276,8 +275,9 @@ def generate_new_structure_using_llm(scale, api_type, max_score_list, max_score_
 
 
     Parameters = params['parameters']
+    Min_Parameters =  int(Parameters*0.9)
     GFLOPs =params['GFLOPs']
-    Layers = params['layers']
+    Layers = params['layers'] * 2
     Gradients = params['gradients']
     
     # prompt_cn = '根据现有配置，生成一个新的优化后的配置，优化目标：参数量不增加或参数量减少情况下提升目标检测性能。具体的module顺序你可以更改，channel数值也可以变化。总之，你可以根据自己的理解生成新结构，结果比原有配置性能更优就可以。'
@@ -286,21 +286,21 @@ def generate_new_structure_using_llm(scale, api_type, max_score_list, max_score_
              You can change the specific module order, and the channel value can also change. Sizes of tensors must match except in dimension 1.
              In short, you can generate a new structure according to your own understanding, and the result is better than the original configuration.'''
     
-    Params_prompt = f"Please suggest a better structure that can improve the structure's score results provided above. The parameters of the new configuration should be less than {Parameters}, but greater than 90% of {Parameters}! The GFLOPs of the new configuration should be less than {GFLOPs}."
+    Params_prompt = f"Please suggest a better structure that can improve the structure's score results provided above. The new configuration should have fewer than {Layers} layers. The number of parameters in the new configuration should be less than {Parameters} but greater than {Min_Parameters}. Additionally, the GFLOPs of the new configuration should not exceed {GFLOPs}."
         
     if len(max_score_list) > 0:
-        experiments_prompt = lambda max_score_yaml_list, max_score_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list : '''Here are some structure's score results that you can use as a reference:
+        experiments_prompt = lambda max_score_yaml_list, max_score_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list : '''Here are some structure's score results that you can use as a reference:
         {}
-        '''.format(''.join(['{} gives a score of {:.4f}, and {} parameters.\n\n'.format(best_structure, max_score, paramter, gflops) for best_structure, max_score, paramter, gflops in zip(max_score_yaml_list, max_score_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list)]))
+        '''.format(''.join(['{} gives a score of {:.4f}, {} layers, {} parameters and {} GFLOPs.\n\n'.format(best_structure, max_score, layers, paramter, gflops) for best_structure, max_score, layers, paramter, gflops in zip(max_score_yaml_list, max_score_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list)]))
         if more_modules:    
             messages = [
                     {"role": "system", "content": system_content},
-                    {"role": "user", "content": user_input + higher_input + prompt + experiments_prompt(max_score_yaml_list, max_score_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list) + Params_prompt + suffix}] 
+                    {"role": "user", "content": user_input + higher_input + prompt + experiments_prompt(max_score_yaml_list, max_score_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list) + Params_prompt + suffix}] 
         # print("# experiments_prompt: \n ", experiments_prompt(max_score_yaml_list, max_score_list))
         else:
             messages = [
                     {"role": "system", "content": system_content},
-                    {"role": "user", "content": user_input + prompt + experiments_prompt(max_score_yaml_list, max_score_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list) + Params_prompt + suffix}] 
+                    {"role": "user", "content": user_input + prompt + experiments_prompt(max_score_yaml_list, max_score_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list) + Params_prompt + suffix}] 
     else:
         if more_modules:
             messages = [
