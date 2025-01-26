@@ -9,10 +9,22 @@
 
 # import time
 from ultralytics import YOLO
+from data_utils.data_process import get_max
 
-model_name = 'yolov8n'
-model = YOLO(f'./llmv8/model/{model_name}.yaml')
-model.train(data='./llmv8/data/coco_5percent.yaml', epochs=500, imgsz=640, batch=128, device=[4,5], name=model_name, cache=True, plots=True,resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov8n5/weights/last.pt')
+task_name = 'yolov12n'
+model = YOLO(f'{task_name}.yaml', verbose=True)
+
+coco_data = './train_val/cfg_llm/data/coco.yaml'
+
+
+model.train(data=coco_data, epochs=1000, imgsz=640, batch=64, device=[2], name=task_name, cache=True, plots=True, pretrained=False,
+            # resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov11n/weights/last.pt'
+            )
+save_dir=fr'./runs/detect/{task_name}'
+get_max(fr'{save_dir}/results.csv')
+
+
+# model.train(data='./llmv8/data/coco_5percent.yaml', epochs=500, imgsz=640, batch=128, device=[4,5], name=model_name, cache=True, plots=True,resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov8n5/weights/last.pt')
 # model.train(data='coco8.yaml', epochs=100, imgsz=640, device=[4,], name='train_v11n', cache=True, plots=True, resume=True, model='/home/kongfei/code/yolov10/runs/detect/train_10n/weights/last.pt')
 
 

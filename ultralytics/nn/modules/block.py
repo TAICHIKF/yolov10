@@ -50,6 +50,8 @@ __all__ = (
     "PSA",
     "SCDown",
     "TorchVision",
+    "ECAAttention", # v12
+    "ASPP", # v12
 )
 
 
@@ -1156,3 +1158,101 @@ class TorchVision(nn.Module):
         else:
             y = self.m(x)
         return y
+
+
+#  v12
+
+class ECAAttention(nn.Module):
+    def __init__(self, c, b=1, gamma=2, add_local_context=True, kernel_size=3, expansion_ratio=0.5, num_psa_layers=1):
+        """
+        ECAAttention module combined with C2PSA-inspired design, featuring channel split and PSA block.
+
+        Args:
+            c (int): Number of input channels.
+            b (int): A constant for computing kernel size in ECA.
+            gamma (float): A scaling factor for kernel size.
+            add_local_context (bool): Whether to add local context via lightweight convolution.
+            kernel_size (int): Kernel size for local convolution.
+            expansion_ratio (float): Ratio to determine hidden channel size.
+            num_psa_layers (int): Number of PSA blocks in the attention path.
+        """
+        super().__init__()
+        self.c = c
+        self.hidden_c = int(c * expansion_ratio)  # Hidden channels after splitting
+
+        # 1x1 Conv to reduce input channels (类似C2PSA中的cv1)
+        self.cv1 = nn.Conv2d(c, 2 * self.hidden_c, kernel_size=1, stride=1)
+
+        # PSA blocks for enhanced feature extraction (C2PSA inspired)
+        self.psa_blocks = nn.Sequential(
+            *(PSABlock(self.hidden_c, attn_ratio=0.5, num_heads=max(1, self.hidden_c // 64)) for _ in range(num_psa_layers))
+        )
+
+        # Local context enhancement (改进点1)
+        self.local_conv = nn.Conv2d(self.hidden_c, self.hidden_c, kernel_size=kernel_size, stride=1, padding=kernel_size // 2, groups=self.hidden_c, bias=False) if add_local_context else nn.Identity()
+
+        # Channel interaction (改进点3)
+        self.channel_fc = nn.Sequential(
+            nn.Linear(self.hidden_c, self.hidden_c // 4, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(self.hidden_c // 4, self.hidden_c, bias=False),
+        )
+
+        # ECA attention (global attention)
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        import math
+        t = int(abs((math.log(self.hidden_c, 2) + b) / gamma))
+        k = t if t % 2 else t + 1
+        self.eca_conv = nn.Conv1d(1, 1, kernel_size=k, padding=(k - 1) // 2, bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+        # Final 1x1 Conv to merge channels (类似C2PSA中的cv2)
+        self.cv2 = nn.Conv2d(2 * self.hidden_c, c, kernel_size=1)
+
+    def forward(self, x):
+        """
+        Forward pass with channel splitting, PSA block processing, and feature enhancement.
+        """
+        # Channel split
+        a, b = self.cv1(x).split((self.hidden_c, self.hidden_c), dim=1)
+
+        # PSA block and local context enhancement on part `b`
+        b = self.local_conv(b) + b  # Add local context
+        b = self.psa_blocks(b)  # PSA processing
+
+        # Global context via ECA attention
+        y = self.avg_pool(b).view(b.size(0), -1)  # Global pooling
+        y = self.channel_fc(y).view(b.size(0), self.hidden_c, 1, 1)  # Channel interaction
+        eca_weight = self.sigmoid(y)  # ECA weights
+        b = b * eca_weight.expand_as(b)  # Apply ECA attention
+
+        # Merge and return
+        return self.cv2(torch.cat((a, b), dim=1))
+    
+    
+
+class ASPP(nn.Module):
+    def __init__(self, c1, c2):
+        super().__init__()
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(c1, c2, 1, bias=False),
+            nn.BatchNorm2d(c2),
+            nn.ReLU(inplace=True),
+        )
+        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
+        self.pool2 = nn.MaxPool2d(kernel_size=5, stride=1, padding=2)
+        self.pool3 = nn.MaxPool2d(kernel_size=7, stride=1, padding=3)
+        self.project = nn.Sequential(
+            nn.Conv2d(c2 * 4, c2, 1, bias=False),
+            nn.BatchNorm2d(c2),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.1),
+        )
+
+    def forward(self, x):
+        x1 = self.conv1(x)
+        x2 = self.pool1(x1)
+        x3 = self.pool2(x1)
+        x4 = self.pool3(x1)
+        x = torch.cat((x1, x2, x3, x4), dim=1)
+        return self.project(x)

@@ -6,7 +6,6 @@ yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=6
 yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0 resume model=r'D:\code\yolov10\runs\detect\train\weights\last.pt'
 ps aux | grep anaconda3/envs/yolo | grep -v grep | awk '{print $2}' | xargs kill -9
 '''
-
 import os
 import yaml
 import json
@@ -21,10 +20,10 @@ from data_utils.extract_scales import extract_parameters
 #-----------------------------------------------------------------
 
 yolo_model = 0  # True, 是否训练baseline模型（v8 & v11）
+version = 'v8'  # v8, v11, v12
 
-version = 'v8'  # v8, v11
-Train_flag = 1 # 如果测试llm生成架构时，值为0，训练时为1
-scale = 'l' # n s m l x
+Train_flag = 0 # 如果测试llm生成架构时，值为0，训练时为1
+scale = 'm' # n s m l x
 more_modules = 0 # llm生成架构时，更改模块类型则为1
 
 total_iterations = 20 # 假设循环5次
@@ -32,7 +31,7 @@ total_iterations = 20 # 假设循环5次
 percent = '100'
 api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
 
-task_name_template = f'yolo{version}plus'  # 任务名称的模板
+task_name_template = f'yolo{version}plus'             # 任务名称的模板
 coco_data = './train_val/cfg_llm/data/coco.yaml'
 coco_dir = '/xmnt/mnt_nfs_qynas_v4/kongfei/data/coco' # a04 - u404
 
@@ -96,8 +95,8 @@ with open(coco_data, 'w') as file:
 if yolo_model:
     task_name = f'yolo{version}n'
     model = YOLO(f'{task_name}.yaml', verbose=True)
-    model.train(data=coco_data, epochs=520, imgsz=640, batch=192, device=[0,1], name=task_name, cache=True, plots=True, pretrained=True,
-                resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov11n/weights/last.pt'
+    model.train(data=coco_data, epochs=1000, imgsz=640, batch=64, device=[2], name=task_name, cache=True, plots=True, pretrained=False,
+                # resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov11n/weights/last.pt'
                 )
     save_dir=fr'./runs/detect/{task_name}'
     get_max(fr'{save_dir}2/results.csv')
@@ -179,7 +178,7 @@ else:
                 
             summary_info = new_model.info(detailed=False, verbose=True)
             # 搜索用做计算分数的gpu id
-            info = compute_nas_score_yolov8(gpu=4, model=new_model.model.cuda(4))   
+            info = compute_nas_score_yolov8(gpu=3, model=new_model.model.cuda(3))   
             zen_score = round(float(info['avg_nas_score']), 4)
             new_yaml_content, layers, parameters, gflops = save_model_info(task_name, file_path, summary_info, zen_score, version,  scale)
             print(f"# max_score_list: {max_score_list}")
@@ -333,7 +332,7 @@ batch            16            批量大小，有三种模式：设置为整数�
 imgsz            640           训练的目标图像大小。所有图像在输入模型之前都会调整为此尺寸。影响模型的准确性和计算复杂度。
 save             True          启用保存训练检查点和最终模型权重。对于恢复训练或模型部署非常有用。
 save_period      -1            保存模型检查点的频率，以轮数为单位指定。值为 -1 时禁用此功能。适用于在长时间训练过程中保存中间模型。
-cache            False         启用将数据集图像缓存到内存（True/ram）、磁盘（disk）或禁用（False）。通过减少磁盘 I/O 提高训练速度，但会增加内存使用。
+cache            False         启用将数据集图像缓存到内存（True/ram）、磁盘（dsk）或禁用（False）。通过减少磁盘 I/O 提高训练速度，但会增加内存使用。
 device           None          指定用于训练的计算设备：单个 GPU（device=0）、多个 GPU（device=0,1）、CPU（device=cpu）或 Apple Silicon 的 MPS（device=mps）。
 workers          8             数据加载的工作线程数量（如果是多 GPU 训练，则按 RANK）。影响数据预处理和输入模型的速度，特别是在多 GPU 设置中非常有用。
 project          None          训练输出保存的项目目录名称。允许有组织地存储不同的实验。

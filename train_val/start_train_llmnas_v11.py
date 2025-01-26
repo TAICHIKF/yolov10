@@ -96,8 +96,8 @@ with open(coco_data, 'w') as file:
 if yolo_model:
     task_name = f'yolo{version}n'
     model = YOLO(f'{task_name}.yaml', verbose=True)
-    model.train(data=coco_data, epochs=520, imgsz=640, batch=192, device=[0,1], name=task_name, cache=True, plots=True, pretrained=True,
-                resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov11n/weights/last.pt'
+    model.train(data=coco_data, epochs=1000, imgsz=640, batch=192, device=[0,1], name=task_name, cache=True, plots=True, pretrained=True,
+                # resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov11n/weights/last.pt'
                 )
     save_dir=fr'./runs/detect/{task_name}'
     get_max(fr'{save_dir}2/results.csv')

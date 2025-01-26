@@ -22,21 +22,21 @@ def extract_parameters(scale_key, version='v8'):
         if scale_key == "n":
             results.update({
                 "layers": 225,
-                "parameters": 3000000,
+                "parameters": 3157200,
                 "gradients":  3157184,
                 "GFLOPs": 8.9
             })
         elif scale_key == "s":
             results.update({
                 "layers": 225,
-                "parameters": 11000000,
+                "parameters": 11166560,
                 "gradients":  11166544,
                 "GFLOPs": 28.8
             })
         elif scale_key == "m":
             results.update({
                 "layers": 295,
-                "parameters": 25000000,
+                "parameters": 25902640,
                 "gradients":  25902624,
                 "GFLOPs": 79.3
             })

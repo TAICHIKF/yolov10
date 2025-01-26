@@ -1,0 +1,226 @@
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call yolo11.yaml with scale 'n'
+  # [depth, width, max_channels]
+  n: [0.50, 0.25, 1024] # YOLOv12n summary: 410 layers, 2,312,919 parameters, 2,312,903 gradients, 6.8 GFLOP
+  s: [0.50, 0.50, 1024] # YOLOv12s summary: 410 layers, 7,728,489 parameters, 7,728,473 gradients, 20.3 GFLOPs
+  m: [0.50, 1.00, 512]  # YOLOv12m summary: 410 layers, 16,269,065 parameters, 16,269,049 gradients, 62.8 GFLOPs
+  l: [1.00, 1.00, 512]  # YOLOv12l summary: 624 layers, 19,342,089 parameters, 19,342,073 gradients, 83.8 GFLOPs
+  x: [1.00, 1.50, 512]  # YOLOv12x summary: 624 layers, 43,303,849 parameters, 43,303,833 gradients, 186.3 GFLOPs
+
+backbone:
+  - [-1, 1, GhostConv, [64, 3, 2]]
+  - [-1, 1, GhostConv, [128, 3, 2]]
+  - [-1, 2, GhostBottleneck, [256, 1, False]]
+  - [-1, 1, GhostConv, [256, 3, 2]]
+  - [-1, 2, GhostBottleneck, [512, 1, False]]
+  - [-1, 1, GhostConv, [512, 3, 2]]
+  - [-1, 2, GhostBottleneck, [512, 1, True]]
+  - [-1, 1, GhostConv, [1024, 3, 2]]
+  - [-1, 2, GhostBottleneck, [1024, 1, True]]
+  - [-1, 1, ASPP, [1024]]
+  - [-1, 1, ECAAttention, [1024]]
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 6], 1, Concat, [1]] # cat backbone P4
+  - [-1, 2, GhostBottleneck, [512, 1, False]]
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 4], 1, Concat, [1]] # cat backbone P3
+  - [-1, 2, GhostBottleneck, [256, 1, False]]
+
+  - [-1, 1, GhostConv, [256, 3, 2]]
+  - [[-1, 13], 1, Concat, [1]] # cat head P4
+  - [-1, 2, GhostBottleneck, [512, 1, False]]
+
+  - [-1, 1, GhostConv, [512, 3, 2]]
+  - [[-1, 10], 1, Concat, [1]] # cat head P5
+  - [-1, 2, GhostBottleneck, [1024, 1, True]]
+
+  - [[16, 19, 22], 1, Detect, [nc]]
+
+# '''
+
+
+# class GhostBottleneck(nn.Module):
+#     def __init__(self, c1, c2, n=1, s=1, use_se=False):
+#         super().__init__()
+#         self.n = n  # 重复次数
+#         self.m = nn.ModuleList([
+#             nn.Sequential(
+#                 GhostConv(c1 if i == 0 else c2, c2, 1, 1),  # Point-wise expansion
+#                 nn.Conv2d(c2, c2, 3, s if i == 0 else 1, 1, groups=c2, bias=False),  # Depth-wise convolution
+#                 nn.BatchNorm2d(c2),
+#                 SEBlock(c2) if use_se else nn.Identity(),  # Squeeze-and-Excitation
+#                 GhostConv(c2, c2, 1, 1, act=False)  # Point-wise linear projection
+#             ) for i in range(n)
+#         ])
+#         self.shortcuts = nn.ModuleList([
+#             nn.Sequential(
+#                 nn.Conv2d(c1 if i == 0 else c2, c2, 1, s if i == 0 else 1, 0, bias=False),
+#                 nn.BatchNorm2d(c2)
+#             ) if s != 1 or c1 != c2 else nn.Identity()
+#             for i in range(n)
+#         ])
+
+#     def forward(self, x):
+#         for module, shortcut in zip(self.m, self.shortcuts):
+#             x = module(x) + shortcut(x)
+#         return x
+
+
+# # SEBlock
+# class SEBlock(nn.Module):
+#     def __init__(self, c, r=16):
+#         """
+#         Squeeze-and-Excitation模块，通过自适应地重新校准通道权重，提升模型的表示能力。
+
+#         参数：
+#         c (int): 输入通道数。
+#         r (int): 通道压缩比例，默认值为16。
+#         """
+#         super().__init__()
+#         self.avg_pool = nn.AdaptiveAvgPool2d(1)
+#         self.fc = nn.Sequential(
+#             nn.Linear(c, c // r, bias=False),
+#             nn.ReLU(inplace=True),
+#             nn.Linear(c // r, c, bias=False),
+#             nn.Sigmoid()
+#         )
+
+#     def forward(self, x):
+#         """
+#         前向传播过程，输入特征图，输出经过SE模块调整后的特征图。
+
+#         参数：
+#         x (Tensor): 输入特征图，形状为[B, C, H, W]。
+
+#         返回值：
+#         x (Tensor): 经过SE模块调整后的特征图，形状为[B, C, H, W]。
+#         """
+#         b, c, _, _ = x.size()
+#         y = self.avg_pool(x).view(b, c)
+#         y = self.fc(y).view(b, c, 1, 1)
+#         return x * y.expand_as(x)
+
+
+# class GhostConv(nn.Module):
+#     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):
+#         super().__init__()
+#         self.primary_conv = nn.Sequential(
+#             nn.Conv2d(c1, c2 // 2, k, s, autopad(k, p), groups=g, bias=False),
+#             nn.BatchNorm2d(c2 // 2),
+#             nn.ReLU(inplace=True) if act else nn.Identity(),
+#         )
+#         self.cheap_operation = nn.Sequential(
+#             nn.Conv2d(c2 // 2, c2 // 2, 3, 1, 1, groups=c2 // 2, bias=False),
+#             nn.BatchNorm2d(c2 // 2),
+#             nn.ReLU(inplace=True) if act else nn.Identity(),
+#         )
+
+#     def forward(self, x):
+#         x1 = self.primary_conv(x)
+#         x2 = self.cheap_operation(x1)
+#         return torch.cat([x1, x2], dim=1)
+
+
+
+
+#   class ASPP(nn.Module):
+#     def __init__(self, c1, c2):
+#         super().__init__()
+#         self.conv1 = nn.Sequential(
+#             nn.Conv2d(c1, c2, 1, bias=False),
+#             nn.BatchNorm2d(c2),
+#             nn.ReLU(inplace=True),
+#         )
+#         self.pool1 = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
+#         self.pool2 = nn.MaxPool2d(kernel_size=5, stride=1, padding=2)
+#         self.pool3 = nn.MaxPool2d(kernel_size=7, stride=1, padding=3)
+#         self.project = nn.Sequential(
+#             nn.Conv2d(c2 * 4, c2, 1, bias=False),
+#             nn.BatchNorm2d(c2),
+#             nn.ReLU(inplace=True),
+#             nn.Dropout(0.1),
+#         )
+
+#     def forward(self, x):
+#         x1 = self.conv1(x)
+#         x2 = self.pool1(x1)
+#         x3 = self.pool2(x1)
+#         x4 = self.pool3(x1)
+#         x = torch.cat((x1, x2, x3, x4), dim=1)
+#         return self.project(x)
+
+
+# class ECAAttention(nn.Module):
+#     def __init__(self, c, b=1, gamma=2, add_local_context=True, kernel_size=3, expansion_ratio=0.5, num_psa_layers=1):
+#         """
+#         ECAAttention module combined with C2PSA-inspired design, featuring channel split and PSA block.
+
+#         Args:
+#             c (int): Number of input channels.
+#             b (int): A constant for computing kernel size in ECA.
+#             gamma (float): A scaling factor for kernel size.
+#             add_local_context (bool): Whether to add local context via lightweight convolution.
+#             kernel_size (int): Kernel size for local convolution.
+#             expansion_ratio (float): Ratio to determine hidden channel size.
+#             num_psa_layers (int): Number of PSA blocks in the attention path.
+#         """
+#         super().__init__()
+#         self.c = c
+#         self.hidden_c = int(c * expansion_ratio)  # Hidden channels after splitting
+
+#         # 1x1 Conv to reduce input channels (类似C2PSA中的cv1)
+#         self.cv1 = nn.Conv2d(c, 2 * self.hidden_c, kernel_size=1, stride=1)
+
+#         # PSA blocks for enhanced feature extraction (C2PSA inspired)
+#         self.psa_blocks = nn.Sequential(
+#             *(PSABlock(self.hidden_c, attn_ratio=0.5, num_heads=max(1, self.hidden_c // 64)) for _ in range(num_psa_layers))
+#         )
+
+#         # Local context enhancement (改进点1)
+#         self.local_conv = nn.Conv2d(self.hidden_c, self.hidden_c, kernel_size=kernel_size, stride=1, padding=kernel_size // 2, groups=self.hidden_c, bias=False) if add_local_context else nn.Identity()
+
+#         # Channel interaction (改进点3)
+#         self.channel_fc = nn.Sequential(
+#             nn.Linear(self.hidden_c, self.hidden_c // 4, bias=False),
+#             nn.ReLU(inplace=True),
+#             nn.Linear(self.hidden_c // 4, self.hidden_c, bias=False),
+#         )
+
+#         # ECA attention (global attention)
+#         self.avg_pool = nn.AdaptiveAvgPool2d(1)
+#         t = int(abs((math.log(self.hidden_c, 2) + b) / gamma))
+#         k = t if t % 2 else t + 1
+#         self.eca_conv = nn.Conv1d(1, 1, kernel_size=k, padding=(k - 1) // 2, bias=False)
+#         self.sigmoid = nn.Sigmoid()
+
+#         # Final 1x1 Conv to merge channels (类似C2PSA中的cv2)
+#         self.cv2 = nn.Conv2d(2 * self.hidden_c, c, kernel_size=1)
+
+#     def forward(self, x):
+#         """
+#         Forward pass with channel splitting, PSA block processing, and feature enhancement.
+#         """
+#         # Channel split
+#         a, b = self.cv1(x).split((self.hidden_c, self.hidden_c), dim=1)
+
+#         # PSA block and local context enhancement on part `b`
+#         b = self.local_conv(b) + b  # Add local context
+#         b = self.psa_blocks(b)  # PSA processing
+
+#         # Global context via ECA attention
+#         y = self.avg_pool(b).view(b.size(0), -1)  # Global pooling
+#         y = self.channel_fc(y).view(b.size(0), self.hidden_c, 1, 1)  # Channel interaction
+#         eca_weight = self.sigmoid(y)  # ECA weights
+#         b = b * eca_weight.expand_as(b)  # Apply ECA attention
+
+#         # Merge and return
+#         return self.cv2(torch.cat((a, b), dim=1))
+
+
+
+# '''
