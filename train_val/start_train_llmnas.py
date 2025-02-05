@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 '''
+python main.py --version v8 --scale m  --total_iterations 30 --yolo_model 0  --more_modules 1 --train_flag 0  --api_type Poe
+
 yolo detect train data=coco.yaml model=yolov10n/s/m/b/l/x.yaml epochs=500 batch=256 imgsz=640 device=0,1,2,3,4,5,6,7
 yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0,1,2,3'
 yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0 resume model=r'D:\code\yolov10\runs\detect\train\weights\last.pt'
@@ -9,27 +11,45 @@ ps aux | grep anaconda3/envs/yolo | grep -v grep | awk '{print $2}' | xargs kill
 import os
 import yaml
 import json
+import argparse
 from datetime import datetime
 from ultralytics import YOLO
-# from LLM.llm_generate import generate_new_structure_using_llm
 from LLM.llm_generate_module import generate_new_structure_using_llm
 from LLM.llm_generate_module_v11 import generate_new_structure_using_llm_v11
 from data_utils.compute_nas_score import compute_nas_score_yolov8
 from data_utils.data_process import num_percent, save_model_info, get_max, clear_gpu_memory
 from data_utils.extract_scales import extract_parameters
 #-----------------------------------------------------------------
+#-----------------------------------------------------------------
+def parse_args():
+    parser = argparse.ArgumentParser(description="YOLO NAS Training and LLM Generation")
+    
+    # 参数
+    parser.add_argument('--version', type=str, default='v8', help="Version of the model (default is 'v8')")
+    parser.add_argument('--yolo_model', type=int, default=0, choices=[0, 1], help="Set to 1 if using YOLO model, 0 for baseline")
+    parser.add_argument('--train_flag', type=int, default=1, choices=[0, 1], help="Set to 0 for LLM architecture generation, 1 for training")
+    parser.add_argument('--scale', type=str, default='m', choices=['n', 's', 'm', 'l', 'x'], help="Scale type (n, s, m, l, x)")
+    parser.add_argument('--more_modules', type=int, default=1, choices=[0, 1], help="Set to 1 to change module types in LLM architecture generation")
+    parser.add_argument('--total_iterations', type=int, default=30, help="Number of total iterations (default is 30)")
+    parser.add_argument('--percent', type=str, default='100', help="Percentage value (default is '100')")
+    parser.add_argument('--api_type', type=str, default='Poe', choices=['Poe', 'qwen'], help="API type ('Poe' or 'qwen')")
+    
+    return parser.parse_args()
 
-yolo_model = 0  # True, 是否训练baseline模型（v8 & v11）
-version = 'v8'  # v8, v11, v12
+#-----------------------------------------------------------------
+# 解析命令行参数
+args = parse_args()
+# 传递给你现有的代码
+version = args.version            # v8, v11, v12
+yolo_model = args.yolo_model  # 布尔值（True/False）
+Train_flag = args.train_flag      # 如果测试llm生成架构时，值为0，训练时为1
+scale = args.scale                # n s m l x
+more_modules = args.more_modules   # llm生成架构时，更改模块类型则为1
+total_iterations = args.total_iterations   #  llm循环次数
+percent = args.percent
+api_type = args.api_type  # 设置API类型，可以是 'Poe' 或其他: qwen
 
-Train_flag = 0 # 如果测试llm生成架构时，值为0，训练时为1
-scale = 'm' # n s m l x
-more_modules = 0 # llm生成架构时，更改模块类型则为1
-
-total_iterations = 20 # 假设循环5次
-
-percent = '100'
-api_type = 'Poe'  # 设置API类型，可以是 'Poe' 或其他: qwen
+#-----------------------------------------------------------------
 
 task_name_template = f'yolo{version}plus'             # 任务名称的模板
 coco_data = './train_val/cfg_llm/data/coco.yaml'

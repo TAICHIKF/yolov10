@@ -17,7 +17,7 @@ model = YOLO(f'{task_name}.yaml', verbose=True)
 coco_data = './train_val/cfg_llm/data/coco.yaml'
 
 
-model.train(data=coco_data, epochs=1000, imgsz=640, batch=64, device=[2], name=task_name, cache=True, plots=True, pretrained=False,
+model.train(data=coco_data, epochs=1000, imgsz=640, batch=64, device=[2], name=task_name, cache=True, plots=True, pretrained=True,
             # resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov11n/weights/last.pt'
             )
 save_dir=fr'./runs/detect/{task_name}'
