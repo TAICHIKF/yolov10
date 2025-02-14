@@ -2,7 +2,7 @@ from openai import OpenAI
 from zhipuai import ZhipuAI
 import time
 import requests
-from .yolo_yaml import clean_markdown_yaml
+from .yolo_yaml import clean_markdown_yaml, clean_markdown_yaml_ds, clean_and_extract_optimized_config
 
 
 yolov8n_config_yaml = """
@@ -227,7 +227,7 @@ head:
 """
 
 
-modules = '''['Conv', 'C2f', 'C3Ghost', 'GhostConv', 'SPPF']'''
+modules = '''['Conv', 'C2f', 'C3Ghost', 'GhostConv', 'SPPF', 'C2fCIB', 'SCDown', 'PSA']'''
 # 'C2fCIB', 'SCDown', 'PSA'
 
 modules_example = '''
@@ -236,24 +236,23 @@ C2f: - [-1, 3, C2f, [128, True]]
 C3Ghost: - [-1, 6, C3Ghost, [256, True]]
 GhostConv: - [-1, 1, GhostConv, [128, 3, 2]]
 SPPF: - [-1, 1, SPPF, [1024, 5]]
+C2fCIB: - [-1, 3, C2fCIB, [1024, True]]
+SCDown: - [-1, 1, SCDown, [512, 3, 2]]
+PSA: - [-1, 1, PSA, [1024]]
 '''
-# C2fCIB: - [-1, 3, C2fCIB, [1024, True]]
-# SCDown: - [-1, 1, SCDown, [512, 3, 2]]
-# PSA: - [-1, 1, PSA, [1024]]
 
 
 system_content = "You are Quoc V. Le, a computer scientist and artificial intelligence researcher who is widely regarded as one of the leading experts in deep learning and neural network architecture search. Your work in this area has focused on developing efficient algorithms for searching the space of possible neural network architectures, with the goal of finding architectures that perform well on a given task while minimizing the computational cost of training and inference."
 
 # user_input = f'''You need to analyze where yolov11 is better than yolov8, and then understand and improve on the basis of yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}, The configuration file for yolov11 is{yolov11_config_yaml}'''
 
-'''更复杂一些的生成方式则是替换modul的类型，可选类型有：{modules}, 具体使用示例可参考{modules_example}。在替换module时必须注意的是module之间channel的匹配，特别要注意Concat这个过程，不要把channel匹配错了。如果你对某个modules不了解具体的结构，请不要使用。'''
+# '''更复杂一些的生成方式则是替换modul的类型，可选类型有：{modules}, 具体使用示例可参考{modules_example}。在替换module时必须注意的是module之间channel的匹配，特别要注意Concat这个过程，不要把channel匹配错了。如果你对某个modules不了解具体的结构，请不要使用。'''
 
 higher_input = f'''A more complex way to generate modul is to replace the modul type with {modules}, for example {modules_example}. When replacing modules, you must pay attention to the matching of channels between modules. Pay special attention to the Concat process, and do not match the channels incorrectly. If you don't know the structure of modules, don't use them.'''
 
-suffix = '''Please do not include anything else other than configuration in your response!'''
 
 
-def generate_new_structure_using_llm(scale, api_type, max_score_list, max_score_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules):
+def generate_new_structure_using_llm(scale, api_type, model_name, max_score_list, max_score_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules):
     
     # yolov8_config_yaml = get_yaml(scale)
     if scale == 'n':
@@ -269,10 +268,13 @@ def generate_new_structure_using_llm(scale, api_type, max_score_list, max_score_
     else:
         raise ValueError(f"Invalid scale '{scale}'. Please choose from: 'n', 's', 'm', 'l', 'x'.")
 
+
+
     user_input = f'''You need to analyze yolov8 to make the newly generated configuration better than yolov8. The configuration file for yolov8 is {yolov8_config_yaml}
                  You can modify values in repeats in backbone, channel in module, and channel in head. The depth, width and max_channels values should not be adjusted. However, it is important to note that repeats no more than 10 times and the modified channel values need to match each other.
                  The methods to keep the number of parameters constant are as follows: 0. Only change the types of some modules, but the number of channels between modules must be strict; 1. Increase the number of layers while reducing the number of channels; 2. Increase the number of channels while reducing the number of layers. In short, the parameters, gradients and GFLOPs of the new configuration should not be increased. '''
 
+    suffix = f'''The final generated content format reference: {yolov8_config_yaml}, do not need to give <think>... </think> content and other annotated content. For the resulting schema, use standard YAML syntax notation: ```yaml {yolov8_config_yaml}```.Please do not include anything else other than configuration in your response!'''
 
     Parameters = params['parameters']
     Min_Parameters =  int(Parameters*0.9)
@@ -331,6 +333,8 @@ def generate_new_structure_using_llm(scale, api_type, max_score_list, max_score_
         
         
     if api_type == 'Poe':
+        
+        model_name = model_name
         # Create an asynchronous function to encapsulate the async for loop
         # ssh -L 9000:api.poe.com:443 feikong@172.18.20.193
         # ssh -N -R 9000:api.poe.com:443 kongfei@172.22.162.34
@@ -338,7 +342,7 @@ def generate_new_structure_using_llm(scale, api_type, max_score_list, max_score_
         
         response_json = requests.post(
             'http://172.18.20.10:5001/get_responses',
-            json={'api_key': api_key, 'messages': messages}
+            json={'api_key': api_key, 'model_name': model_name, 'messages': messages}
         )
 
         # print("# response:", response_json.json())
@@ -420,12 +424,19 @@ def generate_new_structure_using_llm(scale, api_type, max_score_list, max_score_
     # 获取响应内容 
     if api_type != 'Poe':
         new_structure = response.choices[0].message.content
+        print("# new_structure: \n", new_structure)
+        if model_name == 'DeepSeek-R1':
+            cleaned_new_yaml = clean_markdown_yaml(new_structure)
     else:
         new_structure = response
+        print("# new_structure: \n", new_structure)
+        cleaned_new_yaml = clean_markdown_yaml(new_structure)
+        
 
     # 去除 ```yaml 和 ```
     # cleaned_new_yaml = new_structure.strip("```yaml").strip("```")
-    cleaned_new_yaml = clean_markdown_yaml(new_structure)
 
+
+    
 
     return cleaned_new_yaml

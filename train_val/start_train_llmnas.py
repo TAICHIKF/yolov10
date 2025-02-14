@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 '''
-python main.py --version v8 --scale m  --total_iterations 30 --yolo_model 0  --more_modules 1 --train_flag 0  --api_type Poe
+python train_val/start_train_llmnas.py --version v8 --scale n  --total_iterations 10 --yolo_model 0  --more_modules 0 --train_flag 0 --gpu_id 7 --model_name DeepSeek-R1
 
 yolo detect train data=coco.yaml model=yolov10n/s/m/b/l/x.yaml epochs=500 batch=256 imgsz=640 device=0,1,2,3,4,5,6,7
 yolo detect train data=coco.yaml model=yolov10m.yaml epochs=100 batch=16 imgsz=640 device=0,1,2,3'
@@ -28,11 +28,13 @@ def parse_args():
     parser.add_argument('--version', type=str, default='v8', help="Version of the model (default is 'v8')")
     parser.add_argument('--yolo_model', type=int, default=0, choices=[0, 1], help="Set to 1 if using YOLO model, 0 for baseline")
     parser.add_argument('--train_flag', type=int, default=1, choices=[0, 1], help="Set to 0 for LLM architecture generation, 1 for training")
+    parser.add_argument('--gpu_id', type=int, default=0, help="gpu_id")
     parser.add_argument('--scale', type=str, default='m', choices=['n', 's', 'm', 'l', 'x'], help="Scale type (n, s, m, l, x)")
     parser.add_argument('--more_modules', type=int, default=1, choices=[0, 1], help="Set to 1 to change module types in LLM architecture generation")
     parser.add_argument('--total_iterations', type=int, default=30, help="Number of total iterations (default is 30)")
     parser.add_argument('--percent', type=str, default='100', help="Percentage value (default is '100')")
     parser.add_argument('--api_type', type=str, default='Poe', choices=['Poe', 'qwen'], help="API type ('Poe' or 'qwen')")
+    parser.add_argument('--model_name', type=str, default='DeepSeek-R1', choices=['DeepSeek-R1', 'DeepSeek-V3'], help="model type ('DeepSeek-R1' or 'DeepSeek-v3')")
     
     return parser.parse_args()
 
@@ -42,12 +44,14 @@ args = parse_args()
 # 传递给你现有的代码
 version = args.version            # v8, v11, v12
 yolo_model = args.yolo_model  # 布尔值（True/False）
-Train_flag = args.train_flag      # 如果测试llm生成架构时，值为0，训练时为1
+train_flag = args.train_flag      # 如果测试llm生成架构时，值为0，训练时为1
+gpu_id = args.gpu_id      # 如果测试llm生成架构时，值为0，训练时为1
 scale = args.scale                # n s m l x
 more_modules = args.more_modules   # llm生成架构时，更改模块类型则为1
 total_iterations = args.total_iterations   #  llm循环次数
 percent = args.percent
 api_type = args.api_type  # 设置API类型，可以是 'Poe' 或其他: qwen
+model_name = args.model_name  # 设置API类型，可以是 'Poe' 或其他: qwen
 
 #-----------------------------------------------------------------
 
@@ -137,9 +141,9 @@ else:
     best_new_yaml_gflops_list = []
     
     if more_modules:
-        dir_path = f"./train_val/cfg_llm/models_new/{version}_{api_type}_{total_iterations}_{scale}"
+        dir_path = f"./train_val/cfg_llm/models_new/{model_name}/{version}_{total_iterations}_{scale}"
     else:
-        dir_path = f"./train_val/cfg_llm/models/{version}_{api_type}_{total_iterations}_{scale}"
+        dir_path = f"./train_val/cfg_llm/models/{model_name}/{version}_{total_iterations}_{scale}"
         
     # 确保文件所在的目录存在，如果不存在则创建
     if not os.path.exists(dir_path):
@@ -168,9 +172,9 @@ else:
             try:
                 # 调用 LLM API 生成新的网络结构
                 if version == 'v8':
-                    new_structure = generate_new_structure_using_llm(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
+                    new_structure = generate_new_structure_using_llm(scale, api_type, model_name, max_score_list, best_new_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
                 elif version == 'v11':
-                    new_structure = generate_new_structure_using_llm_v11(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
+                    new_structure = generate_new_structure_using_llm_v11(scale, api_type, model_name, max_score_list, best_new_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
                     
                 # print(f"生成的新结构: {new_structure}")
                 # 将新结构写入 YAML 文件
@@ -186,9 +190,9 @@ else:
                 print("重新生成网络结构...")
                 # 如果报错，重新生成结构
                 if version == 'v8':
-                    new_structure = generate_new_structure_using_llm(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
+                    new_structure = generate_new_structure_using_llm(scale, api_type, model_name, max_score_list, best_new_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
                 elif version == 'v11':
-                    new_structure = generate_new_structure_using_llm_v11(scale, api_type, max_score_list, best_new_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
+                    new_structure = generate_new_structure_using_llm_v11(scale, api_type, model_name, max_score_list, best_new_yaml_list, best_new_yaml_layers_list, best_new_yaml_parameters_list, best_new_yaml_gflops_list, params, more_modules)
                     
                 # 将新结构写入 YAML 文件
                 with open(file_path, "w") as file:
@@ -198,7 +202,7 @@ else:
                 
             summary_info = new_model.info(detailed=False, verbose=True)
             # 搜索用做计算分数的gpu id
-            info = compute_nas_score_yolov8(gpu=3, model=new_model.model.cuda(3))   
+            info = compute_nas_score_yolov8(gpu=gpu_id, model=new_model.model.cuda(gpu_id))   
             zen_score = round(float(info['avg_nas_score']), 4)
             new_yaml_content, layers, parameters, gflops = save_model_info(task_name, file_path, summary_info, zen_score, version,  scale)
             print(f"# max_score_list: {max_score_list}")
@@ -253,10 +257,10 @@ else:
     # best_task_name = best_task_name_list[-1]
     train_task_name = f'{api_type}_{total_iterations}_{scale}_{best_task_name}'
     if version == 'v8':
-        save_dir=fr'./llmnas_results/yolov8/{train_task_name}{scale}'
+        save_dir=fr'./llmnas_results/yolov8/{model_name}/{train_task_name}{scale}'
         project_name = 'llmnas_yolov8' 
     else:
-        save_dir=fr'./llmnas_results/yolov11/{train_task_name}{scale}'
+        save_dir=fr'./llmnas_results/yolov11/{model_name}/{train_task_name}{scale}'
         project_name = 'llmnas_yolov11' 
     
                     
@@ -266,7 +270,7 @@ else:
     
     if os.path.exists(fr'{save_dir}/results.png'):
         print(f"已经训练过，跳过操作: {best_task_name}")
-    elif not Train_flag:
+    elif not train_flag:
          print(f"测试架构生成，暂不执行训练！")
     else:              
         # 手动选择一个配置文件
@@ -274,7 +278,7 @@ else:
         # best_file_path = os.path.join("./train_val/cfg_llm/models_new/v8_Poe_30_m/yolov8plus10.yaml")    
         print("# best_file_path:", best_file_path)    
         model = YOLO(best_file_path, verbose=False)
-        model.train(data=coco_data, epochs=1000, imgsz=640, batch=128, device=[4,5,6,7], project=project_name, name=f'{train_task_name}{scale}', cache=True, plots=True, pretrained=False,
+        model.train(data=coco_data, epochs=1000, imgsz=640, batch=16, device=[6], project=project_name, name=f'{train_task_name}{scale}', cache=True, plots=True, pretrained=False,
                     # resume=True, model='/home/kongfei/code/yolov10/llmnas_results/yolov8/Poe_20_n_yolov8plus17n2/weights/last.pt'
                     )
         get_max(fr'{save_dir}/results.csv')
