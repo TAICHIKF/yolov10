@@ -17,11 +17,19 @@ model = YOLO(f'{task_name}.yaml', verbose=True)
 coco_data = './train_val/cfg_llm/data/coco.yaml'
 
 
-model.train(data=coco_data, epochs=1000, imgsz=640, batch=64, device=[2], name=task_name, cache=True, plots=True, pretrained=True,
-            # resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov11n/weights/last.pt'
+# model.train(data=coco_data, epochs=2000, imgsz=640, batch=128, device=[0,1,2,3], name=task_name, cache=True, plots=True, pretrained=False,
+model.train(data=coco_data, 
+            epochs=1000, 
+            imgsz=640, 
+            batch=32, 
+            device=[2,3], 
+            name=task_name, 
+            cache=True, plots=True, pretrained=False, 
+            # lr0=0.014,
+            # resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov12n9/weights/last.pt'
             )
 save_dir=fr'./runs/detect/{task_name}'
-get_max(fr'{save_dir}/results.csv')
+get_max(fr'{save_dir}15/results.csv')
 
 
 # model.train(data='./llmv8/data/coco_5percent.yaml', epochs=500, imgsz=640, batch=128, device=[4,5], name=model_name, cache=True, plots=True,resume=True, model='/home/kongfei/code/yolov10/runs/detect/yolov8n5/weights/last.pt')

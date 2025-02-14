@@ -1217,7 +1217,7 @@ def plot_results(file="path/to/results.csv", dir="", segment=False, pose=False, 
         try:
             data = pd.read_csv(f)
             s = [x.strip() for x in data.columns]
-            x = data.values[:, 0]
+            x = data.values[:, 1]
             for i, j in enumerate(index):
                 y = data.values[:, j].astype("float")
                 # y[y == 0] = np.nan  # don't show zero values
@@ -1230,7 +1230,7 @@ def plot_results(file="path/to/results.csv", dir="", segment=False, pose=False, 
             LOGGER.warning(f"WARNING: Plotting error for {f}: {e}")
     ax[1].legend()
     fname = save_dir / "results.png"
-    fig.savefig(fname, dpi=200)
+    fig.savefig(fname, dpi=300)
     plt.close()
     if on_plot:
         on_plot(fname)

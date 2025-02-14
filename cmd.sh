@@ -5,6 +5,7 @@ scp -r /home/kongfei/code/yolov10/train_val/cfg_llm/model/Poe_10  kongfei@172.22
 
 
 scp -r  /home/kongfei/code/yolov10/train_val/cfg_llm/models_new/v8_Poe_30_m  kongfei@172.22.162.38:/home/kongfei/code/yolov10/train_val/cfg_llm/models_new
+scp -r  /home/kongfei/code/yolov10/train_val/cfg_llm/models_new/v8_Poe_30_x  kongfei@172.22.162.38:/home/kongfei/code/yolov10/train_val/cfg_llm/models_new
 
 ssh-keygen -t rsa -b 4096 -C "1282328191@qq.com"
 cat ~/.ssh/id_rsa.pub

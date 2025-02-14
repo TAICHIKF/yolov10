@@ -1231,28 +1231,51 @@ class ECAAttention(nn.Module):
     
     
 
+# class ASPP(nn.Module):
+#     def __init__(self, c1, c2):
+#         super().__init__()
+#         self.conv1 = nn.Sequential(
+#             nn.Conv2d(c1, c2, 1, bias=False),
+#             nn.BatchNorm2d(c2),
+#             nn.ReLU(inplace=True),
+#         )
+#         self.pool1 = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
+#         self.pool2 = nn.MaxPool2d(kernel_size=5, stride=1, padding=2)
+#         self.pool3 = nn.MaxPool2d(kernel_size=7, stride=1, padding=3)
+#         self.project = nn.Sequential(
+#             nn.Conv2d(c2 * 4, c2, 1, bias=False),
+#             nn.BatchNorm2d(c2),
+#             nn.ReLU(inplace=True),
+#             nn.Dropout(0.1),
+#         )
+
+#     def forward(self, x):
+#         x1 = self.conv1(x)
+#         x2 = self.pool1(x1)
+#         x3 = self.pool2(x1)
+#         x4 = self.pool3(x1)
+#         x = torch.cat((x1, x2, x3, x4), dim=1)
+#         return self.project(x)
+
+
 class ASPP(nn.Module):
     def __init__(self, c1, c2):
         super().__init__()
+        # 使用深度可分离卷积减少参数
         self.conv1 = nn.Sequential(
-            nn.Conv2d(c1, c2, 1, bias=False),
-            nn.BatchNorm2d(c2),
-            nn.ReLU(inplace=True),
+            nn.Conv2d(c1, c2//4, 1),  # 输出通道减少为1/4
+            nn.BatchNorm2d(c2//4),
+            nn.ReLU()
         )
-        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
-        self.pool2 = nn.MaxPool2d(kernel_size=5, stride=1, padding=2)
-        self.pool3 = nn.MaxPool2d(kernel_size=7, stride=1, padding=3)
-        self.project = nn.Sequential(
-            nn.Conv2d(c2 * 4, c2, 1, bias=False),
-            nn.BatchNorm2d(c2),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.1),
-        )
-
+        # 改用平均池化+1x1卷积（减少索引存储）
+        self.pool_layers = nn.ModuleList([
+            nn.Sequential(
+                nn.AvgPool2d(kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(c2//4, c2//4, 1)
+            ) for _ in range(3)
+        ])
+        
     def forward(self, x):
         x1 = self.conv1(x)
-        x2 = self.pool1(x1)
-        x3 = self.pool2(x1)
-        x4 = self.pool3(x1)
-        x = torch.cat((x1, x2, x3, x4), dim=1)
-        return self.project(x)
+        pooled = [layer(x1) for layer in self.pool_layers]
+        return torch.cat([x1] + pooled, dim=1)  # 总通道数保持c2

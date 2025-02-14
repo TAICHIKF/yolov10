@@ -21,8 +21,8 @@ backbone:
   - [-1, 2, C3k2, [512, True]]
   - [-1, 1, Conv, [1024, 3, 2]] # 7-P5/32
   - [-1, 2, C3k2, [1024, True]]
-  - [-1, 1, SPPF, [1024, 5]] # 9
-  - [-1, 1, ECAAttention, [1024]] # 10
+  - [-1, 1, ASPP, [1024]]     # YOLOv12n summary: 324 layers, 2,788,176 parameters, 2,788,160 gradients, 6.7 GFLOPs;  326 layers, 2,488,528 parameters, 2,488,512 gradients, 6.5 GFLOPs
+  - [-1, 2, C2PSA, [1024]] # 10
 
 
 # YOLO11n head
